@@ -1,0 +1,43 @@
+name: Helm Chart CI
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - "charts/zerotier/**"
+      - ".github/workflows/helm.yaml"
+  pull_request:
+    branches: [ master ]
+    paths:
+      - "charts/zerotier/**"
+      - ".github/workflows/helm.yaml"
+
+jobs:
+  lint-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.4
+
+      - name: Helm lint
+        run: helm lint charts/zerotier
+
+      - name: Helm dependency build
+        run: helm dependency build charts/zerotier
+
+      - name: Helm package
+        run: |
+          mkdir -p dist
+          helm package charts/zerotier --destination dist
+
+      - name: Upload packaged chart
+        uses: actions/upload-artifact@v4
+        with:
+          name: zerotier-chart
+          path: dist/*.tgz
+

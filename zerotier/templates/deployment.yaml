@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "zerotier.fullname" . }}
+  labels:
+    {{- include "zerotier.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.deployment.revisionHistoryLimit }}
+  progressDeadlineSeconds: {{ .Values.deployment.progressDeadlineSeconds }}
+  selector:
+    matchLabels:
+      {{- include "zerotier.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "zerotier.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      hostNetwork: true
+      {{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ default (include "zerotier.fullname" .) .Values.serviceAccount.name }}
+      {{- else if .Values.serviceAccount.name }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: data-prep
+          image: "{{ .Values.initContainer.image }}:{{ .Values.initContainer.tag }}"
+          command:
+            {{- toYaml .Values.initContainer.command | nindent 12 }}
+          volumeMounts:
+            - name: secrets
+              mountPath: /data
+              readOnly: true
+            - name: share
+              mountPath: /var/lib/zerotier-one
+          securityContext:
+            readOnlyRootFilesystem: false
+      containers:
+        - name: zerotier
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - {{ .Values.network.id | quote }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          volumeMounts:
+            - name: share
+              mountPath: /var/lib/zerotier-one
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      restartPolicy: Always
+      volumes:
+        - name: share
+          emptyDir:
+            {{- if .Values.volume.medium }}
+            medium: {{ .Values.volume.medium }}
+            {{- end }}
+        - name: secrets
+          secret:
+            secretName: {{ include "zerotier.secretName" . }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+

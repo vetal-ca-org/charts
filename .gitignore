@@ -1,0 +1,14 @@
+.idea/
+.vscode/
+
+
+# Helm chart package artifacts
+*.tgz
+*.tgz.prov
+*.tar.gz
+
+# Helm dependency build outputs
+charts/**/charts/
+charts/**/tmp/
+
+

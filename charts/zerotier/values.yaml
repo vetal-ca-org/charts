@@ -1,0 +1,48 @@
+replicaCount: 1
+
+image:
+  repository: zerotier/zerotier
+  tag: "1.14.2"
+  pullPolicy: IfNotPresent
+
+network:
+  id: "<zerotier-net-id>"
+  interface: "zt0"
+
+hostNetwork: true
+
+deployment:
+  nameOverride: ""
+  fullnameOverride: ""
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
+  terminationGracePeriodSeconds: 30
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+
+containerSecurityContext:
+  privileged: true
+  allowPrivilegeEscalation: true
+  readOnlyRootFilesystem: false
+  runAsNonRoot: false
+
+resources: {}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+serviceAccount:
+  create: false
+  name: ""
+
+identity:
+  public: "<public-key>"
+  private: "<private-key>"
+
+volume:
+  medium: ""
+

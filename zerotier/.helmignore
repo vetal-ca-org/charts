@@ -1,0 +1,15 @@
+# Common Helm ignores
+.DS_Store
+.git/
+.gitignore
+.idea/
+.vscode/
+*.swp
+*.bak
+*.tmp
+*.orig
+node_modules/
+charts/
+Chart.lock
+.env
+
