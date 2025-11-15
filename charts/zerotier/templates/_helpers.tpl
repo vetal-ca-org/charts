@@ -1,5 +1,10 @@
 {{- define "zerotier.name" -}}
-{{- default .Chart.Name .Values.deployment.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- $chartName := .Chart.Name -}}
+{{- if .Values.deployment.nameOverride -}}
+{{- printf "%s-%s" $chartName .Values.deployment.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- $chartName | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
 {{- end -}}
 
 {{- define "zerotier.fullname" -}}
