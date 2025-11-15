@@ -22,6 +22,10 @@ app: {{ include "zerotier.name" . }}
 {{- end -}}
 
 {{- define "zerotier.secretName" -}}
-{{- printf "%s-%s" (include "zerotier.fullname" .) "secret" | trunc 63 | trimSuffix "-" -}}
+{{- include "zerotier.fullname" . -}}
+{{- end -}}
+
+{{- define "zerotier.localConfName" -}}
+{{- printf "%s-%s" "zt-conf" (include "zerotier.fullname" .) | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 

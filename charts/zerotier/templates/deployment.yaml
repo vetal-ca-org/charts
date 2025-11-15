@@ -41,10 +41,17 @@ spec:
           command:
             - sh
             - -c
-            - cp -v /data/* /var/lib/zerotier-one && chown -R 999:999 /var/lib/zerotier-one
+            - |
+              set -euo pipefail
+              cp -v /data/* /var/lib/zerotier-one
+              cp -v /conf/local.conf /var/lib/zerotier-one/local.conf
+              chown -R 999:999 /var/lib/zerotier-one
           volumeMounts:
             - name: secrets
               mountPath: /data
+              readOnly: true
+            - name: local-conf
+              mountPath: /conf
               readOnly: true
             - name: share
               mountPath: /var/lib/zerotier-one
@@ -73,6 +80,9 @@ spec:
         - name: secrets
           secret:
             secretName: {{ include "zerotier.secretName" . }}
+        - name: local-conf
+          configMap:
+            name: {{ include "zerotier.localConfName" . }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

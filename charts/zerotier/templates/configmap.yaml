@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "zerotier.localConfName" . }}
+  labels:
+    {{- include "zerotier.labels" . | nindent 4 }}
+data:
+  local.conf: |
+    {{- toJson .Values.localConf | nindent 4 }}
+
+

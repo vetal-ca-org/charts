@@ -9,7 +9,7 @@ network:
   id: "<zerotier-net-id>"
   interface: "zt0"
 
-hostNetwork: true
+hostNetwork: false
 
 deployment:
   nameOverride: ""
@@ -42,6 +42,10 @@ serviceAccount:
 identity:
   public: "<public-key>"
   private: "<private-key>"
+
+localConf:
+  settings:
+    primaryPort: 9993
 
 volume:
   medium: ""
