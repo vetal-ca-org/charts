@@ -1,0 +1,57 @@
+{{- if .Values.istio.enabled }}
+{{- $hosts := required "istio.hosts must contain at least one host when istio.enabled=true" .Values.istio.hosts }}
+{{- $ns := default .Release.Namespace .Values.istio.namespaceOverride }}
+{{- $gatewayName := default (printf "%s-gateway" (include "openconnect.fullname" .)) .Values.istio.gatewayName }}
+{{- $selector := default (dict "istio" "ingressgateway") .Values.istio.selector }}
+{{- $port := default 443 .Values.istio.port }}
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: {{ $gatewayName }}
+  namespace: {{ $ns }}
+  labels:
+    {{- include "openconnect.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- toYaml $selector | nindent 4 }}
+  servers:
+    - port:
+        number: {{ $port }}
+        name: tls
+        protocol: TLS
+      tls:
+        mode: PASSTHROUGH
+      hosts:
+        {{- range $hosts }}
+        - {{ . | quote }}
+        {{- end }}
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ printf "%s-vs" (include "openconnect.fullname" .) }}
+  namespace: {{ $ns }}
+  labels:
+    {{- include "openconnect.labels" . | nindent 4 }}
+spec:
+  hosts:
+    {{- range $hosts }}
+    - {{ . | quote }}
+    {{- end }}
+  gateways:
+    - {{ $gatewayName }}
+  tls:
+    - match:
+        - port: {{ $port }}
+          sniHosts:
+            {{- $sni := default $hosts .Values.istio.sniHosts }}
+            {{- range $sni }}
+            - {{ . | quote }}
+            {{- end }}
+      route:
+        - destination:
+            host: {{ include "openconnect.fullname" . }}
+            port:
+              number: {{ .Values.service.port }}
+{{- end }}
+

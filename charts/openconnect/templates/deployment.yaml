@@ -40,6 +40,10 @@ spec:
         - name: ocserv
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: vpn
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
           securityContext:
             {{- toYaml .Values.containerSecurityContext | nindent 12 }}
           volumeMounts:

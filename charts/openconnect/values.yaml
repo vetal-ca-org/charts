@@ -7,6 +7,14 @@ image:
 
 hostNetwork: false
 
+service:
+  enabled: false
+  type: ClusterIP
+  port: 443
+  targetPort: 443
+  annotations: {}
+  labels: {}
+
 deployment:
   nameOverride: ""
   fullnameOverride: ""
@@ -98,4 +106,9 @@ defaultGroup:
     - 192.168.0.0/16
   dns: []
   extraDirectives: []
+
+istio:
+  enabled: false
+  hosts:
+    - vpn.example.com
 
