@@ -4,7 +4,7 @@ Helm chart collection with GitHub Actions–driven linting and publishing.
 
 ## Repository layout
 
-- `charts/<name>` – individual charts (currently `zerotier`)
+- `charts/<name>` – individual charts (currently `zerotier` and `openconnect`)
 - `dist/` – local build artifacts (`helm package` output, ignored by git)
 - `.github/workflows/helm.yaml` – CI lint/package on PRs
 - `.github/workflows/release.yaml` – packages + publishes charts to GitHub Pages via chart-releaser
