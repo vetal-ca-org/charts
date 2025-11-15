@@ -1,9 +1,15 @@
+{{- define "openconnect.basename" -}}
+{{- $base := default .Chart.Name .Values.deployment.nameOverride -}}
+{{- $base | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
 {{- define "openconnect.name" -}}
-{{- $chartName := .Chart.Name -}}
-{{- if .Values.deployment.nameOverride -}}
-{{- printf "%s-%s" $chartName .Values.deployment.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- $chart := .Chart.Name | trunc 63 | trimSuffix "-" -}}
+{{- $base := include "openconnect.basename" . -}}
+{{- if eq $base $chart -}}
+{{- $chart -}}
 {{- else -}}
-{{- $chartName | trunc 63 | trimSuffix "-" -}}
+{{- printf "%s-%s" $chart $base | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 {{- end -}}
 
@@ -11,7 +17,7 @@
 {{- if .Values.deployment.fullnameOverride -}}
 {{- .Values.deployment.fullnameOverride | trunc 63 | trimSuffix "-" -}}
 {{- else -}}
-{{- printf "%s-%s" .Release.Name (include "openconnect.name" .) | trunc 63 | trimSuffix "-" -}}
+{{- printf "%s-%s" .Release.Name (include "openconnect.basename" .) | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 {{- end -}}
 
@@ -27,11 +33,11 @@ app: {{ include "openconnect.name" . }}
 {{- end -}}
 
 {{- define "openconnect.configName" -}}
-{{- printf "ocserv-conf-%s" (include "openconnect.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- printf "conf-%s" (include "openconnect.name" .) | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{- define "openconnect.secretName" -}}
-{{- printf "ocserv-users-%s" (include "openconnect.fullname" .) | trunc 63 | trimSuffix "-" -}}
+{{- printf "users-%s" (include "openconnect.name" .) | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{- define "openconnect.groupName" -}}
