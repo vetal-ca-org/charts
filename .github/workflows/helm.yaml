@@ -6,19 +6,25 @@ on:
       - master
       - "feature/**"
     paths:
-      - "charts/zerotier/**"
+      - "charts/**"
       - ".github/workflows/helm.yaml"
   pull_request:
     branches:
       - master
       - "feature/**"
     paths:
-      - "charts/zerotier/**"
+      - "charts/**"
       - ".github/workflows/helm.yaml"
 
 jobs:
   lint-and-package:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        chart:
+          - zerotier
+          - openconnect
+          - cert-manager
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,17 +35,18 @@ jobs:
           version: v3.14.4
 
       - name: Helm lint
-        run: helm lint charts/zerotier
+        run: helm lint charts/${{ matrix.chart }}
 
       - name: Helm dependency build
-        run: helm dependency build charts/zerotier
+        run: helm dependency build charts/${{ matrix.chart }}
 
       - name: Derive package metadata
         id: meta
         shell: bash
         run: |
           BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
-          BASE_VERSION=$(awk '/^version:/ {print $2}' charts/zerotier/Chart.yaml)
+          CHART_DIR="charts/${{ matrix.chart }}"
+          BASE_VERSION=$(awk '/^version:/ {print $2}' "${CHART_DIR}/Chart.yaml")
           if [[ "${BRANCH}" == "master" ]]; then
             PACKAGE_VERSION="${BASE_VERSION}"
             ARTIFACT_SUFFIX="release"
@@ -55,11 +62,11 @@ jobs:
       - name: Helm package
         run: |
           mkdir -p dist
-          helm package charts/zerotier --destination dist --version "${{ steps.meta.outputs.version }}" --app-version "${{ steps.meta.outputs.version }}"
+          helm package "charts/${{ matrix.chart }}" --destination dist --version "${{ steps.meta.outputs.version }}" --app-version "${{ steps.meta.outputs.version }}"
 
       - name: Upload packaged chart
         uses: actions/upload-artifact@v4
         with:
-          name: zerotier-chart-${{ steps.meta.outputs.artifact_suffix }}
+          name: ${{ matrix.chart }}-chart-${{ steps.meta.outputs.artifact_suffix }}
           path: dist/*.tgz
 

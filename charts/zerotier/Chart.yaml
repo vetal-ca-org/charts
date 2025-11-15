@@ -2,7 +2,7 @@ apiVersion: v2
 name: zerotier
 description: Helm chart for deploying a Zerotier member with optional secrets
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "1.14.2"
 kubeVersion: ">=1.24.0-0"
 icon: https://www.zerotier.com/static/images/zt-icon.png
@@ -14,6 +14,6 @@ keywords:
 sources:
   - https://github.com/zerotier/ZeroTierOne
 maintainers:
-  - name: homelab
-    email: homelab@example.com
+  - name: Vitali Khlebko
+    email: vitali.khlebko@vetal.ca
 

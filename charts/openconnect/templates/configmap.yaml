@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "openconnect.configName" . }}
+  labels:
+    {{- include "openconnect.labels" . | nindent 4 }}
+data:
+  ocserv.conf: |
+    auth = "plain[passwd={{ .Values.auth.passwdFile }}]"
+    ipv4-network = {{ .Values.config.ipv4Network }}
+    ipv4-netmask = {{ .Values.config.ipv4Netmask }}
+    config-per-group = {{ .Values.config.configPerGroupDir }}
+    default-group-config = {{ .Values.config.defaultGroupConfig }}
+    tcp-port = {{ .Values.config.tcpPort }}
+    udp-port = {{ .Values.config.udpPort }}
+    server-cert = {{ .Values.config.serverCert }}
+    server-key = {{ .Values.config.serverKey }}
+    max-clients = {{ .Values.config.maxClients }}
+    max-same-clients = {{ .Values.config.maxSameClients }}
+    keepalive = {{ .Values.config.keepalive }}
+    dpd = {{ .Values.config.dpd }}
+    mobile-dpd = {{ .Values.config.mobileDpd }}
+    try-mtu-discovery = {{ ternary "true" "false" .Values.config.tryMtuDiscovery }}
+    device = {{ .Values.config.device }}
+    run-as-user = {{ .Values.config.runAsUser }}
+    run-as-group = {{ .Values.config.runAsGroup }}
+    {{- with .Values.config.extraDirectives }}
+    {{- range . }}
+    {{ . }}
+    {{- end }}
+    {{- end }}
+  {{- if and .Values.defaultGroup (ne (len .Values.defaultGroup) 0) }}
+  default-group.conf: |
+    {{- include "openconnect.renderGroupConfig" (dict "group" .Values.defaultGroup) | nindent 4 }}
+  {{- end }}
+  {{- $groups := .Values.groups | default dict }}
+  {{- $keys := keys $groups | sortAlpha }}
+  {{- range $idx, $key := $keys }}
+  {{- $group := index $groups $key }}
+  {{- if $group.enabled }}
+  {{- $groupCtx := dict "group" $group "key" $key }}
+  group-{{ include "openconnect.groupFileKey" $groupCtx }}.conf: |
+    {{- include "openconnect.renderGroupConfig" (dict "group" $group) | nindent 4 }}
+  {{- end }}
+  {{- end }}
+

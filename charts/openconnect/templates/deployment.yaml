@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "openconnect.fullname" . }}
+  labels:
+    {{- include "openconnect.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.deployment.revisionHistoryLimit }}
+  progressDeadlineSeconds: {{ .Values.deployment.progressDeadlineSeconds }}
+  selector:
+    matchLabels:
+      {{- include "openconnect.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: {{ ternary "Recreate" "RollingUpdate" .Values.hostNetwork }}
+  template:
+    metadata:
+      labels:
+        {{- include "openconnect.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ include "openconnect.configChecksum" . }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      hostNetwork: {{ .Values.hostNetwork }}
+      terminationGracePeriodSeconds: {{ .Values.deployment.terminationGracePeriodSeconds }}
+      {{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ default (include "openconnect.fullname" .) .Values.serviceAccount.name }}
+      {{- else if .Values.serviceAccount.name }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: ocserv
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: vpn
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/ocserv/ocserv.conf
+              subPath: ocserv.conf
+            {{- if and .Values.defaultGroup (ne (len .Values.defaultGroup) 0) }}
+            - name: config
+              mountPath: /etc/ocserv/defaults/group.conf
+              subPath: default-group.conf
+            {{- end }}
+            {{- $groups := .Values.groups | default dict }}
+            {{- $keys := keys $groups | sortAlpha }}
+            {{- range $idx, $key := $keys }}
+            {{- $group := index $groups $key }}
+            {{- if $group.enabled }}
+            {{- $groupCtx := dict "group" $group "key" $key }}
+            - name: config
+              mountPath: /etc/ocserv/config-per-group/{{ include "openconnect.groupName" $groupCtx }}
+              subPath: group-{{ include "openconnect.groupFileKey" $groupCtx }}.conf
+            {{- end }}
+            {{- end }}
+            - name: auth
+              mountPath: {{ .Values.auth.passwdFile }}
+              subPath: ocpasswd
+            {{- if .Values.tls.secretName }}
+            - name: tls
+              mountPath: /etc/ocserv/ssl
+              readOnly: true
+            {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "openconnect.configName" . }}
+        - name: auth
+          secret:
+            secretName: {{ include "openconnect.secretName" . }}
+        {{- if .Values.tls.secretName }}
+        - name: tls
+          secret:
+            secretName: {{ .Values.tls.secretName }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+

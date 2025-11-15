@@ -1,0 +1,25 @@
+{{- if or .Values.service.enabled (eq (include "openconnect.useIstio" .) "true") }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "openconnect.fullname" . }}
+  labels:
+    {{- include "openconnect.labels" . | nindent 4 }}
+    {{- with .Values.service.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: vpn
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+  selector:
+    {{- include "openconnect.selectorLabels" . | nindent 4 }}
+{{- end }}
+

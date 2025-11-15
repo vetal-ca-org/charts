@@ -1,0 +1,15 @@
+apiVersion: v2
+name: openconnect
+description: OpenConnect VPN server (ocserv) with per-group routing policies and secret-backed user database.
+type: application
+version: 0.1.0
+appVersion: "1.3.0"
+home: https://www.infradead.org/ocserv/
+keywords:
+  - vpn
+  - openconnect
+  - ocserv
+maintainers:
+  - name: Vitali Khlebko
+    email: vitali.khlebko@vetal.ca
+

@@ -1,0 +1,57 @@
+{{- if eq (include "openconnect.useIstio" .) "true" }}
+{{- $vpnAddress := required "vpn_address must be set when istio.enabled=true" .Values.vpn_address }}
+{{- $gatewayNs := default .Release.Namespace .Values.istio.gateway.namespaceOverride }}
+{{- $vsNs := .Release.Namespace }}
+{{- $gatewayName := default (printf "%s-gateway" (include "openconnect.fullname" .)) .Values.istio.gateway.name }}
+{{- $userSelector := .Values.istio.gateway.selector | default dict }}
+{{- $selector := ternary $userSelector (dict "istio" "ingressgateway") (ne (len (keys $userSelector)) 0) }}
+{{- $port := default 443 .Values.istio.port }}
+{{- $gatewayRef := ternary (printf "%s/%s" $gatewayNs $gatewayName) $gatewayName (ne $gatewayNs $vsNs) }}
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: {{ $gatewayName }}
+  namespace: {{ $gatewayNs }}
+  labels:
+    {{- include "openconnect.labels" . | nindent 4 }}
+  {{- with .Values.istio.gateway.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    {{- toYaml $selector | nindent 4 }}
+  servers:
+    - port:
+        number: {{ $port }}
+        name: tls
+        protocol: TLS
+      tls:
+        mode: PASSTHROUGH
+      hosts:
+        - {{ $vpnAddress | quote }}
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ printf "%s-vs" (include "openconnect.fullname" .) }}
+  namespace: {{ $vsNs }}
+  labels:
+    {{- include "openconnect.labels" . | nindent 4 }}
+spec:
+  hosts:
+    - {{ $vpnAddress | quote }}
+  gateways:
+    - {{ $gatewayRef }}
+  tls:
+    - match:
+        - port: {{ $port }}
+          sniHosts:
+            - {{ $vpnAddress | quote }}
+      route:
+        - destination:
+            host: {{ include "openconnect.fullname" . }}
+            port:
+              number: {{ .Values.service.port }}
+{{- end }}
+

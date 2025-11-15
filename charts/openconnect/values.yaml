@@ -1,0 +1,132 @@
+replicaCount: 1
+
+image:
+  repository: cherts/ocserv
+  tag: "1.3.0"
+  pullPolicy: IfNotPresent
+
+hostNetwork: false
+
+service:
+  enabled: false
+  type: ClusterIP
+  port: 443
+  targetPort: 443
+  annotations: {}
+  labels: {}
+
+deployment:
+  nameOverride: ""
+  fullnameOverride: ""
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 600
+  terminationGracePeriodSeconds: 30
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+
+containerSecurityContext:
+  runAsUser: 0
+  runAsGroup: 0
+  allowPrivilegeEscalation: true
+  capabilities:
+    add:
+      - NET_ADMIN
+
+resources: {}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+serviceAccount:
+  create: false
+  name: ""
+
+tls:
+  secretName: ""
+
+auth:
+  passwdFile: /etc/ocserv/ocpasswd
+  users: |
+    # username:group:$6$salt$hashedPassword
+    alice:split-tunnel:$6$salt$hashedpassword1
+    bob:full-tunnel:$6$salt$hashedpassword2
+
+config:
+  ipv4Network: 10.99.99.0
+  ipv4Netmask: 255.255.255.0
+  device: vpns
+  runAsUser: nobody
+  runAsGroup: nogroup
+  tcpPort: 443
+  udpPort: 443
+  maxClients: 128
+  maxSameClients: 2
+  keepalive: 32400
+  dpd: 90
+  mobileDpd: 1800
+  tryMtuDiscovery: true
+  serverCert: /etc/ocserv/ssl/tls.crt
+  serverKey: /etc/ocserv/ssl/tls.key
+  configPerGroupDir: /etc/ocserv/config-per-group
+  defaultGroupConfig: /etc/ocserv/defaults/group.conf
+  extraDirectives: []
+
+# Example groups - uncomment and customize as needed
+# groups:
+#   splitTunnel:
+#     enabled: true
+#     name: split-tunnel
+#     tunnelAllDns: false
+#     routes:
+#       - 10.0.0.0/8
+#       - 172.16.0.0/12
+#       - 192.168.0.0/16
+#     dns: []
+#     extraDirectives: []
+#   fullTunnel:
+#     enabled: true
+#     name: full-tunnel
+#     tunnelAllDns: true
+#     routes:
+#       - default
+#       - 10.0.0.0/8
+#       - 172.16.0.0/12
+#     dns:
+#       - 8.8.8.8
+#       - 8.8.4.4
+#     extraDirectives: []
+
+groups: {}
+
+# Example default group configuration - uncomment and customize as needed
+# defaultGroup:
+#   tunnelAllDns: false
+#   routes:
+#     - 10.0.0.0/8
+#     - 192.168.0.0/16
+#   dns: []
+#   extraDirectives: []
+
+defaultGroup: {}
+
+vpn_address: ""
+
+istio:
+  enabled: false
+  # Gateway port for TLS passthrough
+  port: 443
+  gateway:
+    # Gateway name (defaults to "{fullname}-gateway")
+    name: ""
+    # Namespace where Gateway will be created (defaults to Release.Namespace)
+    # VirtualService is always created in Release.Namespace and references Gateway using namespace/name format if needed
+    namespaceOverride: ""
+    # Gateway selector to match Istio ingress gateway pods
+    # If not set, defaults to { istio: ingressgateway } in the template
+    selector: {}
+    annotations: {}
+
