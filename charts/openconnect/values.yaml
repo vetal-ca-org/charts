@@ -107,8 +107,14 @@ defaultGroup:
   dns: []
   extraDirectives: []
 
+vpn_address: ""
+
+create_certificate: false
+certificate:
+  issuer:
+    kind: ClusterIssuer
+    name: letsencrypt-prod
+
 istio:
   enabled: false
-  hosts:
-    - vpn.example.com
 

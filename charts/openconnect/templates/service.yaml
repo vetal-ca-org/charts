@@ -1,4 +1,4 @@
-{{- if or .Values.service.enabled .Values.istio.enabled }}
+{{- if or .Values.service.enabled (eq (include "openconnect.useIstio" .) "true") }}
 apiVersion: v1
 kind: Service
 metadata:

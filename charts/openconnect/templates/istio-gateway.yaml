@@ -1,5 +1,5 @@
-{{- if .Values.istio.enabled }}
-{{- $hosts := required "istio.hosts must contain at least one host when istio.enabled=true" .Values.istio.hosts }}
+{{- if eq (include "openconnect.useIstio" .) "true" }}
+{{- $vpnAddress := required "vpn_address must be set when istio.enabled=true" .Values.vpn_address }}
 {{- $ns := default .Release.Namespace .Values.istio.namespaceOverride }}
 {{- $gatewayName := default (printf "%s-gateway" (include "openconnect.fullname" .)) .Values.istio.gatewayName }}
 {{- $selector := default (dict "istio" "ingressgateway") .Values.istio.selector }}
@@ -22,9 +22,7 @@ spec:
       tls:
         mode: PASSTHROUGH
       hosts:
-        {{- range $hosts }}
-        - {{ . | quote }}
-        {{- end }}
+        - {{ $vpnAddress | quote }}
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
@@ -35,19 +33,14 @@ metadata:
     {{- include "openconnect.labels" . | nindent 4 }}
 spec:
   hosts:
-    {{- range $hosts }}
-    - {{ . | quote }}
-    {{- end }}
+    - {{ $vpnAddress | quote }}
   gateways:
     - {{ $gatewayName }}
   tls:
     - match:
         - port: {{ $port }}
           sniHosts:
-            {{- $sni := default $hosts .Values.istio.sniHosts }}
-            {{- range $sni }}
-            - {{ . | quote }}
-            {{- end }}
+            - {{ $vpnAddress | quote }}
       route:
         - destination:
             host: {{ include "openconnect.fullname" . }}
