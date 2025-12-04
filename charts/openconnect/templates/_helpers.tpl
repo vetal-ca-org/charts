@@ -77,21 +77,28 @@ tunnel-all-dns = {{ ternary "true" "false" $group.tunnelAllDns }}
 {{- end -}}
 
 {{- define "openconnect.useIstio" -}}
-{{- if and .Values.istio.enabled .Values.vpn_address }}
-true
-{{- end }}
+{{- $result := "" -}}
+{{- if and .Values.istio.enabled .Values.vpn_address -}}
+{{- $result = "true" -}}
+{{- end -}}
+{{- trim $result -}}
 {{- end -}}
 
 {{- define "openconnect.useCertbot" -}}
-{{- if and .Values.create_certificate .Values.vpn_address }}
-true
-{{- end }}
+{{- $result := "" -}}
+{{- if and .Values.create_certificate .Values.vpn_address -}}
+{{- $result = "true" -}}
+{{- end -}}
+{{- trim $result -}}
 {{- end -}}
 
 {{- define "openconnect.useCertSecret" -}}
-{{- if eq (include "openconnect.useCertbot" .) "true" }}
-true
-{{- end }}
+{{- $certbotResult := include "openconnect.useCertbot" . -}}
+{{- $result := "" -}}
+{{- if eq (trim $certbotResult) "true" -}}
+{{- $result = "true" -}}
+{{- end -}}
+{{- trim $result -}}
 {{- end -}}
 
 {{- define "openconnect.certSecretName" -}}
