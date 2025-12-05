@@ -69,8 +69,8 @@ config:
   dpd: 90
   mobileDpd: 1800
   tryMtuDiscovery: true
-  serverCert: /etc/ocserv/ssl/server-cert.pem
-  serverKey: /etc/ocserv/ssl/server-key.pem
+  serverCert: /etc/ocserv/ssl/tls.crt
+  serverKey: /etc/ocserv/ssl/tls.key
   configPerGroupDir: /etc/ocserv/config-per-group
   defaultGroupConfig: /etc/ocserv/defaults/group.conf
   extraDirectives: []
