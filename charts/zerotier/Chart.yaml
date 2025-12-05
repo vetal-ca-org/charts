@@ -14,6 +14,6 @@ keywords:
 sources:
   - https://github.com/zerotier/ZeroTierOne
 maintainers:
-  - name: homelab
-    email: homelab@example.com
+  - name: Vitali Khlebko
+    email: vitali.khlebko@vetal.ca
 

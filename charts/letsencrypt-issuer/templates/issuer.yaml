@@ -1,0 +1,26 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ .Values.issuer.name | quote }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "letsencrypt-issuer.labels" . | nindent 4 }}
+spec:
+  acme:
+    email: {{ .Values.certManager.email | quote }}
+    privateKeySecretRef:
+      name: {{ include "letsencrypt-issuer.acmeKeySecretName" . }}
+    server: {{ include "letsencrypt-issuer.acmeServer" . | quote }}
+    solvers:
+    - dns01:
+        cloudflare:
+          apiTokenSecretRef:
+            key: api-key
+            name: {{ include "letsencrypt-issuer.cloudflareSecretName" . }}
+          email: {{ .Values.certManager.cloudflare.email | quote }}
+      selector:
+        dnsZones:
+        {{- range .Values.domains }}
+          - {{ . | quote }}
+        {{- end }}
+
