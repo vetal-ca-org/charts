@@ -1,16 +1,26 @@
 {{- if eq (include "openconnect.useIstio" .) "true" }}
 {{- $vpnAddress := required "vpn_address must be set when istio.enabled=true" .Values.vpn_address }}
-{{- $ns := default .Release.Namespace .Values.istio.namespaceOverride }}
+{{- $gatewayNs := default .Release.Namespace .Values.istio.namespaceOverride }}
+{{- $vsNs := .Release.Namespace }}
 {{- $gatewayName := default (printf "%s-gateway" (include "openconnect.fullname" .)) .Values.istio.gatewayName }}
 {{- $selector := default (dict "istio" "ingressgateway") .Values.istio.selector }}
 {{- $port := default 443 .Values.istio.port }}
+{{- if ne $gatewayNs $vsNs }}
+{{- $gatewayRef := printf "%s/%s" $gatewayNs $gatewayName }}
+{{- else }}
+{{- $gatewayRef := $gatewayName }}
+{{- end }}
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
   name: {{ $gatewayName }}
-  namespace: {{ $ns }}
+  namespace: {{ $gatewayNs }}
   labels:
     {{- include "openconnect.labels" . | nindent 4 }}
+  {{- with .Values.istio.gateway.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   selector:
     {{- toYaml $selector | nindent 4 }}
@@ -28,14 +38,14 @@ apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
   name: {{ printf "%s-vs" (include "openconnect.fullname" .) }}
-  namespace: {{ $ns }}
+  namespace: {{ $vsNs }}
   labels:
     {{- include "openconnect.labels" . | nindent 4 }}
 spec:
   hosts:
     - {{ $vpnAddress | quote }}
   gateways:
-    - {{ $gatewayName }}
+    - {{ $gatewayRef }}
   tls:
     - match:
         - port: {{ $port }}
