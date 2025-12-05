@@ -5,11 +5,7 @@
 {{- $gatewayName := default (printf "%s-gateway" (include "openconnect.fullname" .)) .Values.istio.gateway.name }}
 {{- $selector := default (dict "istio" "ingressgateway") .Values.istio.gateway.selector }}
 {{- $port := default 443 .Values.istio.port }}
-{{- if ne $gatewayNs $vsNs }}
-{{- $gatewayRef := printf "%s/%s" $gatewayNs $gatewayName }}
-{{- else }}
-{{- $gatewayRef := $gatewayName }}
-{{- end }}
+{{- $gatewayRef := ternary (printf "%s/%s" $gatewayNs $gatewayName) $gatewayName (ne $gatewayNs $vsNs) }}
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
