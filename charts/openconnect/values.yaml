@@ -109,8 +109,8 @@ defaultGroup:
 
 vpn_address: ""
 
-create_certificate: false
 certificate:
+  enabled: false
   issuer:
     kind: ClusterIssuer
     name: letsencrypt-prod

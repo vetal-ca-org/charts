@@ -86,7 +86,7 @@ tunnel-all-dns = {{ ternary "true" "false" $group.tunnelAllDns }}
 
 {{- define "openconnect.useCertbot" -}}
 {{- $result := "" -}}
-{{- if and .Values.create_certificate .Values.vpn_address -}}
+{{- if and .Values.certificate.enabled .Values.vpn_address -}}
 {{- $result = "true" -}}
 {{- end -}}
 {{- trim $result -}}
