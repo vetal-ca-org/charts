@@ -117,16 +117,16 @@ certificate:
 
 istio:
   enabled: false
-  # Namespace where Gateway will be created (defaults to Release.Namespace)
-  # VirtualService is always created in Release.Namespace and references Gateway using namespace/name format if needed
-  namespaceOverride: ""
-  # Gateway name (defaults to "{fullname}-gateway")
-  gatewayName: ""
-  # Gateway selector to match Istio ingress gateway pods
-  selector:
-    istio: ingressgateway
   # Gateway port for TLS passthrough
   port: 443
   gateway:
+    # Gateway name (defaults to "{fullname}-gateway")
+    name: ""
+    # Namespace where Gateway will be created (defaults to Release.Namespace)
+    # VirtualService is always created in Release.Namespace and references Gateway using namespace/name format if needed
+    namespaceOverride: ""
+    # Gateway selector to match Istio ingress gateway pods
+    selector:
+      istio: ingressgateway
     annotations: {}
 
