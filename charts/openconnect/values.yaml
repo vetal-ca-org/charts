@@ -126,7 +126,7 @@ istio:
     # VirtualService is always created in Release.Namespace and references Gateway using namespace/name format if needed
     namespaceOverride: ""
     # Gateway selector to match Istio ingress gateway pods
-    selector:
-      istio: ingressgateway
+    # If not set, defaults to { istio: ingressgateway } in the template
+    selector: {}
     annotations: {}
 
