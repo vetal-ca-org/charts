@@ -1,0 +1,22 @@
+{{- range .Values.certificates }}
+{{- $cert := . }}
+{{- $secretName := default $cert.name $cert.secretName }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $cert.name | quote }}
+  namespace: {{ $.Release.Namespace | quote }}
+  labels:
+    {{- include "cert-manager.labels" $ | nindent 4 }}
+spec:
+  secretName: {{ $secretName | quote }}
+  issuerRef:
+    kind: {{ $cert.issuerRef.kind }}
+    name: {{ $cert.issuerRef.name }}
+  dnsNames:
+  {{- range $cert.dnsNames }}
+    - {{ . | quote }}
+  {{- end }}
+{{- end }}
+

@@ -67,7 +67,7 @@ spec:
             - name: auth
               mountPath: {{ .Values.auth.passwdFile }}
               subPath: ocpasswd
-            {{- if or .Values.tls.secretName (eq (include "openconnect.useCertSecret" .) "true") }}
+            {{- if .Values.tls.secretName }}
             - name: tls
               mountPath: /etc/ocserv/ssl
               readOnly: true
@@ -83,11 +83,7 @@ spec:
         - name: auth
           secret:
             secretName: {{ include "openconnect.secretName" . }}
-        {{- if eq (include "openconnect.useCertSecret" .) "true" }}
-        - name: tls
-          secret:
-            secretName: {{ include "openconnect.certSecretName" . }}
-        {{- else if .Values.tls.secretName }}
+        {{- if .Values.tls.secretName }}
         - name: tls
           secret:
             secretName: {{ .Values.tls.secretName }}

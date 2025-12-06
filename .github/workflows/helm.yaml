@@ -24,7 +24,7 @@ jobs:
         chart:
           - zerotier
           - openconnect
-          - letsencrypt-issuer
+          - cert-manager
     steps:
       - name: Checkout
         uses: actions/checkout@v4

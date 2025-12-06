@@ -109,12 +109,6 @@ defaultGroup:
 
 vpn_address: ""
 
-certificate:
-  enabled: false
-  issuer:
-    kind: ClusterIssuer
-    name: letsencrypt-prod
-
 istio:
   enabled: false
   # Gateway port for TLS passthrough

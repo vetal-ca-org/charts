@@ -1,0 +1,33 @@
+{{- range .Values.issuers }}
+{{- $issuer := . }}
+{{- $namespace := default $.Release.Namespace $issuer.namespace }}
+---
+apiVersion: cert-manager.io/v1
+kind: {{ $issuer.kind }}
+metadata:
+  name: {{ $issuer.name | quote }}
+  {{- if eq $issuer.kind "Issuer" }}
+  namespace: {{ $namespace | quote }}
+  {{- end }}
+  labels:
+    {{- include "cert-manager.labels" $ | nindent 4 }}
+spec:
+  acme:
+    email: {{ $issuer.email | quote }}
+    privateKeySecretRef:
+      name: {{ include "cert-manager.acmeKeySecretName" $issuer }}
+    server: {{ include "cert-manager.acmeServer" $issuer | quote }}
+    solvers:
+    - dns01:
+        cloudflare:
+          apiTokenSecretRef:
+            key: api-key
+            name: {{ include "cert-manager.cloudflareSecretName" $issuer }}
+          email: {{ $issuer.cloudflare.email | quote }}
+      selector:
+        dnsZones:
+        {{- range $issuer.domains }}
+          - {{ . | quote }}
+        {{- end }}
+{{- end }}
+

@@ -1,0 +1,25 @@
+# List of issuers to create
+issuers:
+  # Example issuer configuration
+  # - name: staging
+  #   kind: Issuer  # or ClusterIssuer
+  #   namespace: ""  # Only used if kind is Issuer, defaults to Release.Namespace
+  #   environment: staging  # "staging" or "production"
+  #   server: ""  # Optional: Override ACME server URL
+  #   email: ""  # Email address for Let's Encrypt registration
+  #   cloudflare:
+  #     apiKey: ""  # Cloudflare API token/key
+  #     email: ""  # Cloudflare account email
+  #   domains: []  # DNS zones/domains to be managed by this issuer
+
+# List of certificates to create
+certificates:
+  # Example certificate configuration
+  # - name: my-cert  # Certificate name (required)
+  #   secretName: my-cert-secret  # Optional: Secret name to store the certificate (defaults to certificate name)
+  #   issuerRef:
+  #     kind: ClusterIssuer  # or Issuer
+  #     name: letsencrypt-prod  # Name of the issuer
+  #   dnsNames:
+  #     - example.com
+  #     - www.example.com

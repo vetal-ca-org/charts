@@ -84,25 +84,3 @@ tunnel-all-dns = {{ ternary "true" "false" $group.tunnelAllDns }}
 {{- trim $result -}}
 {{- end -}}
 
-{{- define "openconnect.useCertbot" -}}
-{{- $result := "" -}}
-{{- if and .Values.certificate.enabled .Values.vpn_address -}}
-{{- $result = "true" -}}
-{{- end -}}
-{{- trim $result -}}
-{{- end -}}
-
-{{- define "openconnect.useCertSecret" -}}
-{{- $certbotResult := include "openconnect.useCertbot" . -}}
-{{- $result := "" -}}
-{{- if eq (trim $certbotResult) "true" -}}
-{{- $result = "true" -}}
-{{- end -}}
-{{- trim $result -}}
-{{- end -}}
-
-{{- define "openconnect.certSecretName" -}}
-{{- $sanitized := regexReplaceAll "[^a-zA-Z0-9-]" (lower .Values.vpn_address) "-" -}}
-{{- printf "cert-%s" $sanitized | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-

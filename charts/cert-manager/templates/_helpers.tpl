@@ -1,8 +1,8 @@
-{{- define "letsencrypt-issuer.name" -}}
+{{- define "cert-manager.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{- define "letsencrypt-issuer.fullname" -}}
+{{- define "cert-manager.fullname" -}}
 {{- if .Values.fullnameOverride -}}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
 {{- else -}}
@@ -15,37 +15,36 @@
 {{- end -}}
 {{- end -}}
 
-{{- define "letsencrypt-issuer.labels" -}}
-helm.sh/chart: {{ include "letsencrypt-issuer.name" . }}-{{ .Chart.Version | replace "+" "_" }}
-{{ include "letsencrypt-issuer.selectorLabels" . }}
+{{- define "cert-manager.labels" -}}
+helm.sh/chart: {{ include "cert-manager.name" . }}-{{ .Chart.Version | replace "+" "_" }}
+{{ include "cert-manager.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
 
-{{- define "letsencrypt-issuer.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "letsencrypt-issuer.name" . }}
+{{- define "cert-manager.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "cert-manager.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 
-{{- define "letsencrypt-issuer.cloudflareSecretName" -}}
-{{- printf "cloudflare-creds-%s" .Values.issuer.name -}}
+{{- define "cert-manager.cloudflareSecretName" -}}
+{{- printf "cloudflare-creds-%s" .name -}}
 {{- end -}}
 
-{{- define "letsencrypt-issuer.acmeKeySecretName" -}}
-{{- printf "letsencrypt-%s-acme-key" .Values.issuer.name -}}
+{{- define "cert-manager.acmeKeySecretName" -}}
+{{- printf "letsencrypt-%s-acme-key" .name -}}
 {{- end -}}
 
-{{- define "letsencrypt-issuer.acmeServer" -}}
-{{- if .Values.issuer.server -}}
-{{- .Values.issuer.server -}}
+{{- define "cert-manager.acmeServer" -}}
+{{- if .server -}}
+{{- .server -}}
 {{- else -}}
-{{- if eq .Values.issuer.environment "production" -}}
+{{- if eq .environment "production" -}}
 https://acme-v02.api.letsencrypt.org/directory
 {{- else -}}
 https://acme-staging-v02.api.letsencrypt.org/directory
 {{- end -}}
 {{- end -}}
 {{- end -}}
-
