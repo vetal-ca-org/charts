@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "syncthing.fullname" . }}
+  labels:
+    {{- include "syncthing.labels" . | nindent 4 }}
+spec:
+  serviceName: "syncthing"
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "syncthing.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "syncthing.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "syncthing.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.name }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: PUID
+              value: {{ .Values.permissions.uid | quote }}
+            - name: PGID
+              value: {{ .Values.permissions.gid | quote }}
+            - name: TZ
+              value: {{ .Values.timezone | quote }}
+          ports:
+            - name: http
+              containerPort: 8384
+              protocol: TCP
+{{- range .Values.localServices }}
+            - name: {{ .name | lower | trunc 15 }}
+              containerPort: {{ .port }}
+              protocol: {{ .protocol }}
+{{- end }}
+          {{- if or .Values.configStorage.enabled .Values.hostMounts}}
+          volumeMounts:
+            - name: config
+              # Hardcoded in image
+              mountPath: "/var/syncthing"
+          {{- end }}
+          {{- range .Values.hostMounts }}
+            - name: {{ .name }}
+              mountPath: {{ .podPath }}
+          {{- end}}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if .Values.hostMounts }}
+      volumes:
+  {{- range .Values.hostMounts }}
+        - name: {{ .name }}
+          hostPath:
+            path: {{ .hostPath | quote }}
+  {{- end }}
+  {{- end }}
+  {{- if .Values.configStorage.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: config
+      spec:
+        accessModes:
+          - "ReadWriteOnce"
+        resources:
+          requests:
+            storage: {{ .Values.configStorage.size }}
+        storageClassName: {{ default "default" .Values.configStorage.storageClassName }}
+  {{- end }}

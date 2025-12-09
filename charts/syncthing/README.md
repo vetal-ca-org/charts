@@ -1,0 +1,1 @@
+# Syncthing Helm chart
