@@ -1,0 +1,14 @@
+apiVersion: v2
+name: xray-reality
+description: Xray VLESS inbound with XTLS-Vision and REALITY. TLS passthrough stays with the ingress, not this chart.
+type: application
+version: 0.1.0
+appVersion: "26.10.21"
+home: https://xtls.github.io/
+keywords:
+  - xray
+  - vless
+  - reality
+maintainers:
+  - name: Vitali Khlebko
+    email: vitali.khlebko@vetal.ca

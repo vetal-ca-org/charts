@@ -1,0 +1,43 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/xtls/xray-core
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# Keep this equal to the Service name the passthrough ingress routes to.
+fullnameOverride: ""
+
+listen: 0.0.0.0
+port: 8443
+logLevel: warning
+
+# Default flow for a client that does not set one. XTLS-Vision.
+flow: xtls-rprx-vision
+
+# One entry per VLESS client. id is the UUID. email is the Xray user label.
+clients: []
+#  - email: alice
+#    id: "00000000-0000-0000-0000-000000000000"
+#    flow: xtls-rprx-vision
+
+# REALITY server names. Each name is an SNI and the host in that client's URL.
+# The same names must be on the passthrough Gateway and on the fallback certificate.
+serverNames: []
+#  - mirror.example.com
+
+reality:
+  # host:port of the fallback TLS server. Unauthenticated handshakes are forwarded here.
+  dest: ""
+  privateKey: ""
+  shortIds: []
+
+service:
+  port: 443
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    memory: 256Mi
