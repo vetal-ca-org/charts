@@ -58,14 +58,17 @@ app: {{ include "xray-reality.fullname" . }}
   )
   "sniffing" (dict "enabled" true "destOverride" (list "http" "tls" "quic") "routeOnly" true)
 -}}
+{{- $rules := list -}}
+{{- with $.Values.privateDirect }}
+{{- $rules = append $rules (dict "type" "field" "ip" . "outboundTag" "direct") -}}
+{{- end }}
+{{- $rules = append $rules (dict "type" "field" "ip" (list "geoip:private") "outboundTag" "block") -}}
+{{- $rules = append $rules (dict "type" "field" "protocol" (list "bittorrent") "outboundTag" "block") -}}
 {{- $config := dict
   "log" (dict "loglevel" $.Values.logLevel)
   "inbounds" (list $inbound)
   "outbounds" (list (dict "protocol" "freedom" "tag" "direct") (dict "protocol" "blackhole" "tag" "block"))
-  "routing" (dict "rules" (list
-    (dict "type" "field" "ip" (list "geoip:private") "outboundTag" "block")
-    (dict "type" "field" "protocol" (list "bittorrent") "outboundTag" "block")
-  ))
+  "routing" (dict "rules" $rules)
 -}}
 {{- $config | toJson -}}
 {{- end -}}

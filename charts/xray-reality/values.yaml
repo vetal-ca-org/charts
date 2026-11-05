@@ -12,6 +12,14 @@ listen: 0.0.0.0
 port: 8443
 logLevel: warning
 
+# CIDRs that VLESS clients may reach through the freedom outbound (`direct`).
+# Matched before the geoip:private blackhole. Leave empty to keep blocking all
+# RFC1918 destinations. Do not open the whole private space: that would expose
+# cluster pod, service, and node networks to every client.
+privateDirect: []
+#  - 172.25.8.0/21
+#  - 172.23.80.0/24
+
 # Default flow for a client that does not set one. XTLS-Vision.
 flow: xtls-rprx-vision
 

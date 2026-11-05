@@ -20,6 +20,10 @@ vless://<uuid>@<serverName>:443?encryption=none&flow=xtls-rprx-vision&security=r
 
 The public key is the X25519 public half of `reality.privateKey` (`xray x25519 -i`). Do not put the private key or the UUIDs in this chart's values in git. Pass them from a sops file.
 
+## Private destinations through the proxy
+
+By default, `geoip:private` goes to the `block` outbound so clients cannot probe RFC1918 space behind the server. Set `privateDirect` to the CIDRs that should use the `freedom` outbound (`direct`) instead. That rule is evaluated before the private blackhole. Keep the list narrow; opening all private IPs would expose cluster and node networks.
+
 ## Install
 
 ```bash
