@@ -64,10 +64,16 @@ app: {{ include "xray-reality.fullname" . }}
 {{- end }}
 {{- $rules = append $rules (dict "type" "field" "ip" (list "geoip:private") "outboundTag" "block") -}}
 {{- $rules = append $rules (dict "type" "field" "protocol" (list "bittorrent") "outboundTag" "block") -}}
+{{- /* Xray 26.4+ freedom blocks private IPs for VLESS by default (finalRules).
+       Routing to "direct" alone still blackholes; allow the same CIDRs here. */ -}}
+{{- $freedom := dict "protocol" "freedom" "tag" "direct" -}}
+{{- with $.Values.privateDirect }}
+{{- $_ := set $freedom "settings" (dict "finalRules" (list (dict "action" "allow" "ip" .))) -}}
+{{- end }}
 {{- $config := dict
   "log" (dict "loglevel" $.Values.logLevel)
   "inbounds" (list $inbound)
-  "outbounds" (list (dict "protocol" "freedom" "tag" "direct") (dict "protocol" "blackhole" "tag" "block"))
+  "outbounds" (list $freedom (dict "protocol" "blackhole" "tag" "block"))
   "routing" (dict "rules" $rules)
 -}}
 {{- $config | toJson -}}

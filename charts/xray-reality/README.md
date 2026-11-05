@@ -22,7 +22,7 @@ The public key is the X25519 public half of `reality.privateKey` (`xray x25519 -
 
 ## Private destinations through the proxy
 
-By default, `geoip:private` goes to the `block` outbound so clients cannot probe RFC1918 space behind the server. Set `privateDirect` to the CIDRs that should use the `freedom` outbound (`direct`) instead. That rule is evaluated before the private blackhole. Keep the list narrow; opening all private IPs would expose cluster and node networks.
+By default, two layers block RFC1918 behind the server: a routing rule sends `geoip:private` to `block`, and Xray 26.4+ freedom also blackholes private targets for VLESS unless `finalRules` allow them. Set `privateDirect` to the CIDRs clients may reach. The chart adds a routing allow before the private blackhole and a matching freedom `finalRules` allow. Keep the list narrow; opening all private IPs would expose cluster and node networks.
 
 ## Install
 
