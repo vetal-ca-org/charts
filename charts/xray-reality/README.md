@@ -24,6 +24,10 @@ The public key is the X25519 public half of `reality.privateKey` (`xray x25519 -
 
 By default, two layers block RFC1918 behind the server: a routing rule sends `geoip:private` to `block`, and Xray 26.4+ freedom also blackholes private targets for VLESS unless `finalRules` allow them. Set `privateDirect` to the CIDRs clients may reach. The chart adds a routing allow before the private blackhole and a matching freedom `finalRules` allow. Keep the list narrow; opening all private IPs would expose cluster and node networks.
 
+## WARP (1.1.1.1) public egress
+
+Set `warp.enabled: true` and supply WireGuard device material (`secretKey`, `address`, optional `reserved`) from a `wgcf` registration. The chart adds a userspace WireGuard outbound tagged `warp` and routes all remaining TCP/UDP there. `privateDirect` still uses freedom. No sidecar and no `NET_ADMIN`. Keep `replicaCount: 1` for one WARP device identity. Do not commit WARP keys in plaintext.
+
 ## Install
 
 ```bash
