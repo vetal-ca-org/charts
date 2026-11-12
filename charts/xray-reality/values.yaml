@@ -43,7 +43,8 @@ reality:
 
 # Cloudflare WARP (1.1.1.1) WireGuard outbound. When enabled, all non-private
 # traffic leaves via WARP instead of the node public IP. privateDirect still
-# uses freedom. Keys belong in SOPS, not plaintext values.
+# uses freedom. Only secretKey is secret (SOPS); address/endpoint/reserved/mtu
+# and peerPublicKey are plain values.
 warp:
   enabled: false
   secretKey: ""

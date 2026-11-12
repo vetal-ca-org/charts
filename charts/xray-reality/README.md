@@ -26,7 +26,7 @@ By default, two layers block RFC1918 behind the server: a routing rule sends `ge
 
 ## WARP (1.1.1.1) public egress
 
-Set `warp.enabled: true` and supply WireGuard device material (`secretKey`, `address`, optional `reserved`) from a `wgcf` registration. The chart adds a userspace WireGuard outbound tagged `warp` and routes all remaining TCP/UDP there. `privateDirect` still uses freedom. No sidecar and no `NET_ADMIN`. Keep `replicaCount: 1` for one WARP device identity. Do not commit WARP keys in plaintext.
+Set `warp.enabled: true` and supply WireGuard material from a `wgcf` registration. Only `secretKey` is secret (pass via SOPS). `address`, `peerPublicKey`, `endpoint`, `reserved`, and `mtu` are plain values (`peerPublicKey` / `endpoint` / `mtu` already have chart defaults). The chart adds a userspace WireGuard outbound tagged `warp` and routes all remaining TCP/UDP there. `privateDirect` still uses freedom. No sidecar and no `NET_ADMIN`. Keep `replicaCount: 1` for one WARP device identity.
 
 ## Install
 
