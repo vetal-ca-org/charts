@@ -1,0 +1,38 @@
+{{- if .Values.udpService.enabled }}
+{{- $s := .Values.udpService }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ printf "%s-udp" (include "openconnect.fullname" .) | trunc 63 | trimSuffix "-" }}
+  labels:
+    {{- include "openconnect.labels" . | nindent 4 }}
+    {{- with $s.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with $s.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ $s.type }}
+  {{- with $s.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ . }}
+  {{- end }}
+  {{- with $s.ipFamilyPolicy }}
+  ipFamilyPolicy: {{ . }}
+  {{- end }}
+  {{- with $s.ipFamilies }}
+  ipFamilies:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with $s.loadBalancerIP }}
+  loadBalancerIP: {{ . }}
+  {{- end }}
+  ports:
+    - name: dtls
+      port: {{ $s.port }}
+      targetPort: {{ .Values.config.udpPort }}
+      protocol: UDP
+  selector:
+    {{- include "openconnect.selectorLabels" . | nindent 4 }}
+{{- end }}

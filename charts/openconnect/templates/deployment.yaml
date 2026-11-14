@@ -22,6 +22,8 @@ spec:
         {{- end }}
       annotations:
         checksum/config: {{ include "openconnect.configChecksum" . }}
+        # ocpasswd is a subPath mount, which never sees Secret updates; roll the pod.
+        checksum/users: {{ include "openconnect.ocpasswd" . | sha256sum | printf "%.8s" }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -45,6 +47,11 @@ spec:
             - name: vpn
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
+            {{- if .Values.udpService.enabled }}
+            - name: dtls
+              containerPort: {{ .Values.config.udpPort }}
+              protocol: UDP
+            {{- end }}
           securityContext:
             {{- toYaml .Values.containerSecurityContext | nindent 12 }}
           volumeMounts:
@@ -70,7 +77,7 @@ spec:
             - name: auth
               mountPath: {{ .Values.auth.passwdFile }}
               subPath: ocpasswd
-            {{- if .Values.tls.secretName }}
+            {{- if include "openconnect.tlsSecretName" . }}
             - name: tls
               mountPath: /etc/ocserv/ssl
               readOnly: true
@@ -86,10 +93,10 @@ spec:
         - name: auth
           secret:
             secretName: {{ include "openconnect.secretName" . }}
-        {{- if .Values.tls.secretName }}
+        {{- with include "openconnect.tlsSecretName" . }}
         - name: tls
           secret:
-            secretName: {{ .Values.tls.secretName }}
+            secretName: {{ . }}
         {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
