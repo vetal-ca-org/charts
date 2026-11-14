@@ -91,6 +91,9 @@ app: {{ include "xray-reality.fullname" . }}
   "endpoint" $.Values.warp.endpoint
   "allowedIPs" (list "0.0.0.0/0" "::/0")
 -}}
+{{- with $.Values.warp.keepAlive }}
+{{- $_ := set $peer "keepAlive" (. | int) -}}
+{{- end }}
 {{- $wg := dict
   "secretKey" $.Values.warp.secretKey
   "address" $.Values.warp.address
@@ -109,13 +112,19 @@ app: {{ include "xray-reality.fullname" . }}
 {{- end }}
 {{- $outbounds = append $outbounds $freedom -}}
 {{- $outbounds = append $outbounds (dict "protocol" "blackhole" "tag" "block") -}}
+{{- $inbounds := list $inbound -}}
+{{- if and $.Values.warp.enabled $.Values.warp.healthCheck.enabled }}
+{{- /* Local-only probe path into warp; first rule so nothing else catches it. */ -}}
+{{- $inbounds = append $inbounds (dict "tag" "warp-health" "listen" "127.0.0.1" "port" ($.Values.warp.healthCheck.proxyPort | int) "protocol" "http") -}}
+{{- $rules = prepend $rules (dict "type" "field" "inboundTag" (list "warp-health") "outboundTag" "warp") -}}
+{{- end }}
 {{- $routing := dict "rules" $rules -}}
 {{- if $.Values.warp.enabled }}
 {{- $_ := set $routing "domainStrategy" "IPIfNonMatch" -}}
 {{- end }}
 {{- $config := dict
   "log" (dict "loglevel" $.Values.logLevel)
-  "inbounds" (list $inbound)
+  "inbounds" $inbounds
   "outbounds" $outbounds
   "routing" $routing
 -}}
