@@ -28,6 +28,18 @@ By default, two layers block RFC1918 behind the server: a routing rule sends `ge
 
 Set `warp.enabled: true` and supply WireGuard material from a `wgcf` registration. Only `secretKey` is secret (pass via SOPS). `address`, `peerPublicKey`, `endpoint`, `reserved`, and `mtu` are plain values (`peerPublicKey` / `endpoint` / `mtu` already have chart defaults). The chart adds a userspace WireGuard outbound tagged `warp` and routes all remaining TCP/UDP there. `privateDirect` still uses freedom. No sidecar and no `NET_ADMIN`. Keep `replicaCount: 1` for one WARP device identity.
 
+### Egress watchdog (`warp.healthCheck`) and keepalive
+
+Xray's WireGuard outbound uses **one UDP source port for the life of the process**. That flow can die: handshake initiations go out and nothing comes back, for hours. Meanwhile a handshake with the same key from a different source port succeeds at once (seen on 2026-11-14 on a dual-stack k3s pod, with both IPv4 and IPv6 endpoints). Xray never changes the port, so only a restart recovers.
+
+With `warp.healthCheck.enabled` (default on when `warp.enabled`):
+
+- **Probe path:** xray gets a local HTTP inbound `warp-health` on `127.0.0.1:<proxyPort>`, routed to `warp` by the first routing rule.
+- **Checker:** a `warp-health` busybox sidecar fetches `url` (default `http://cp.cloudflare.com/generate_204`) through it every `interval` seconds. After `failures` consecutive failures it stops serving `/healthz` on `<port>`.
+- **Restart:** the **xray** container's `livenessProbe` is `httpGet :<port>/healthz` (2 × 30 s), so the kubelet restarts only xray, which gets a new socket and source port. Worst case is about `failures × interval + 60 s`, around 2 minutes with the defaults. The VLESS clients drop and reconnect.
+
+`warp.keepAlive` (default 25 s) sets WireGuard persistent keepalive on the peer, so idle periods don't let NAT mappings expire.
+
 ### Endpoint address family
 
 `engage.cloudflareclient.com` has both A and AAAA records. Xray resolves the peer endpoint once, when the tunnel comes up, and picks a **random** record of either family. On a dual-stack pod WARP often ignores the WireGuard handshake over IPv6: ICMP to the same address works, but UDP gets no reply. Public egress then times out until Xray happens to pick IPv4.

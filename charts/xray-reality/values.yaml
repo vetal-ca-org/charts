@@ -64,6 +64,26 @@ warp:
   #  - 0
   #  - 0
   mtu: 1280
+  # WireGuard persistent keepalive (seconds) on the WARP peer. Keeps the NAT
+  # mapping of the long-lived UDP flow warm. 0 = off.
+  keepAlive: 25
+  # WARP egress watchdog. Xray keeps one UDP source port for its whole life;
+  # when that flow dies (no handshake replies), it never recovers on its own,
+  # while a new source port works at once. A sidecar fetches `url` through a
+  # local HTTP inbound routed to `warp`, and serves /healthz while that works.
+  # The xray container's livenessProbe points at it, so the kubelet restarts
+  # xray (new socket, new source port) after about
+  # (failures * interval) + (probe failureThreshold * periodSeconds).
+  healthCheck:
+    enabled: true
+    image: busybox:1.36.1@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662
+    # Plain HTTP: busybox wget has no reliable TLS. 204 from Cloudflare.
+    url: http://cp.cloudflare.com/generate_204
+    interval: 30        # seconds between checks
+    timeout: 10         # seconds per check
+    failures: 2         # consecutive failed checks before /healthz goes away
+    proxyPort: 10809    # xray HTTP inbound on 127.0.0.1, routed to warp
+    port: 8099          # sidecar httpd (pod IP; kubelet probes it)
 
 service:
   port: 443

@@ -29,6 +29,18 @@ spec:
               port: vless
             timeoutSeconds: 5
             periodSeconds: 10
+          {{- if and .Values.warp.enabled .Values.warp.healthCheck.enabled }}
+          # Served by the warp-health sidecar; failing restarts xray only.
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              # Numeric: a named port must belong to the probed container.
+              port: {{ .Values.warp.healthCheck.port }}
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 2
+          {{- end }}
           volumeMounts:
             - name: cfg
               mountPath: /etc/xray
@@ -42,7 +54,57 @@ spec:
               drop: ["ALL"]
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+        {{- if and .Values.warp.enabled .Values.warp.healthCheck.enabled }}
+        {{- $hc := .Values.warp.healthCheck }}
+        - name: warp-health
+          image: {{ $hc.image | quote }}
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c"]
+          args:
+            - |
+              # /healthz exists while WARP egress works. Start healthy so a
+              # fresh xray is not killed before the first check.
+              mkdir -p /www && echo ok > /www/healthz
+              httpd -f -p {{ $hc.port }} -h /www &
+              fails=0
+              while true; do
+                if http_proxy=http://127.0.0.1:{{ $hc.proxyPort }} wget -q -T {{ $hc.timeout }} -O /dev/null {{ $hc.url | quote }}; then
+                  [ "$fails" -gt 0 ] && echo "$(date -u +%FT%TZ) warp ok again"
+                  fails=0; echo ok > /www/healthz
+                else
+                  fails=$((fails + 1))
+                  echo "$(date -u +%FT%TZ) warp check failed ($fails)"
+                  [ "$fails" -ge {{ $hc.failures }} ] && rm -f /www/healthz
+                fi
+                sleep {{ $hc.interval }}
+              done
+          ports:
+            - name: warp-health
+              containerPort: {{ $hc.port }}
+          volumeMounts:
+            - name: www
+              mountPath: /www
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 5m
+              memory: 8Mi
+            limits:
+              memory: 32Mi
+        {{- end }}
       volumes:
         - name: cfg
           secret:
             secretName: {{ include "xray-reality.configSecret" . }}
+        {{- if and .Values.warp.enabled .Values.warp.healthCheck.enabled }}
+        - name: www
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Mi
+        {{- end }}
