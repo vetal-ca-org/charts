@@ -28,6 +28,12 @@ By default, two layers block RFC1918 behind the server: a routing rule sends `ge
 
 Set `warp.enabled: true` and supply WireGuard material from a `wgcf` registration. Only `secretKey` is secret (pass via SOPS). `address`, `peerPublicKey`, `endpoint`, `reserved`, and `mtu` are plain values (`peerPublicKey` / `endpoint` / `mtu` already have chart defaults). The chart adds a userspace WireGuard outbound tagged `warp` and routes all remaining TCP/UDP there. `privateDirect` still uses freedom. No sidecar and no `NET_ADMIN`. Keep `replicaCount: 1` for one WARP device identity.
 
+### Endpoint address family
+
+`engage.cloudflareclient.com` has both A and AAAA records. Xray resolves the peer endpoint once, when the tunnel comes up, and picks a **random** record of either family. On a dual-stack pod WARP often ignores the WireGuard handshake over IPv6: ICMP to the same address works, but UDP gets no reply. Public egress then times out until Xray happens to pick IPv4.
+
+`warp.endpointDomainStrategy` (default `ForceIPv4`) renders `streamSettings.sockopt.domainStrategy` on the `warp` outbound, so the hostname resolves to IPv4 only. It affects only the endpoint lookup. Destinations inside the tunnel can still use IPv6. Set it to `""` for the Xray default, or to `ForceIPv6` / `ForceIPv4v6` / `ForceIPv6v4` if you need those. With an IP literal in `endpoint` the setting has no effect.
+
 ## Install
 
 ```bash

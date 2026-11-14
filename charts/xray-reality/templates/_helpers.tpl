@@ -100,7 +100,11 @@ app: {{ include "xray-reality.fullname" . }}
 {{- with $.Values.warp.reserved }}
 {{- $_ := set $wg "reserved" . -}}
 {{- end }}
-{{- $outbounds = append $outbounds (dict "protocol" "wireguard" "tag" "warp" "settings" $wg) -}}
+{{- $warp := dict "protocol" "wireguard" "tag" "warp" "settings" $wg -}}
+{{- with $.Values.warp.endpointDomainStrategy }}
+{{- $_ := set $warp "streamSettings" (dict "sockopt" (dict "domainStrategy" .)) -}}
+{{- end }}
+{{- $outbounds = append $outbounds $warp -}}
 {{- $rules = append $rules (dict "type" "field" "network" "tcp,udp" "outboundTag" "warp") -}}
 {{- end }}
 {{- $outbounds = append $outbounds $freedom -}}

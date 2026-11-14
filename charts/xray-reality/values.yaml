@@ -53,6 +53,12 @@ warp:
   #  - 2606:4700:110::/128
   peerPublicKey: bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=
   endpoint: engage.cloudflareclient.com:2408
+  # How Xray resolves a hostname endpoint (streamSettings.sockopt.domainStrategy
+  # on the warp outbound). Xray picks a random A/AAAA record otherwise; WARP
+  # often ignores WireGuard handshakes over IPv6, so dual-stack pods break at
+  # random. ForceIPv4 keeps the hostname but only uses its A records.
+  # Empty string = Xray default (both families, random pick).
+  endpointDomainStrategy: ForceIPv4
   reserved: []
   #  - 0
   #  - 0
