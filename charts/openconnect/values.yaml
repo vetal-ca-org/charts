@@ -15,6 +15,22 @@ service:
   annotations: {}
   labels: {}
 
+# UDP Service for DTLS (ocserv config.udpPort). Separate from `service` because
+# TCP usually goes through an ingress (Istio passthrough) while UDP needs its
+# own LoadBalancer. Named "<fullname>-udp".
+udpService:
+  enabled: false
+  type: LoadBalancer
+  port: 443
+  annotations: {}
+  #  metallb.io/address-pool: public
+  #  metallb.io/allow-shared-ip: public
+  labels: {}
+  externalTrafficPolicy: ""   # Cluster | Local; empty = Kubernetes default
+  ipFamilyPolicy: ""          # SingleStack | PreferDualStack | RequireDualStack
+  ipFamilies: []              # e.g. [IPv4, IPv6]
+  loadBalancerIP: ""
+
 deployment:
   nameOverride: ""
   fullnameOverride: ""
@@ -46,14 +62,23 @@ serviceAccount:
   name: ""
 
 tls:
+  # Secret with tls.crt / tls.key, mounted at /etc/ocserv/ssl.
   secretName: ""
+  # When secretName is empty and vpn_address is set, use
+  # cert-<vpn_address lowercased, non [a-z0-9-] -> "-">, truncated to 63.
+  # That is the name the cert-manager Certificate must write to.
+  deriveFromVpnAddress: false
 
 auth:
   passwdFile: /etc/ocserv/ocpasswd
-  users: |
-    # username:group:$6$salt$hashedPassword
-    alice:split-tunnel:$6$salt$hashedpassword1
-    bob:full-tunnel:$6$salt$hashedpassword2
+  # Either a map (preferred, works straight from a sops secrets file):
+  #   users:
+  #     alice: { group: split-tunnel, password: "$6$salt$hash" }
+  #     bob:   { group: full-tunnel,  password: "$6$salt$hash" }
+  # or a raw ocpasswd string ("username:group:hash" lines; helm prints a
+  # harmless "cannot overwrite table" warning for that form).
+  # password is a crypt hash (mkpasswd -m sha-512). Missing group -> "*".
+  users: {}
 
 config:
   ipv4Network: 10.99.99.0

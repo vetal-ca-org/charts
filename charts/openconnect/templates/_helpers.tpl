@@ -40,6 +40,30 @@ app: {{ include "openconnect.name" . }}
 {{- printf "users-%s" (include "openconnect.name" .) | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
+{{- define "openconnect.tlsSecretName" -}}
+{{- if .Values.tls.secretName -}}
+{{- .Values.tls.secretName -}}
+{{- else if and .Values.tls.deriveFromVpnAddress .Values.vpn_address -}}
+{{- printf "cert-%s" (regexReplaceAll "[^a-zA-Z0-9-]" (lower .Values.vpn_address) "-") | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "openconnect.ocpasswd" -}}
+{{- $users := .Values.auth.users -}}
+{{- if kindIs "map" $users -}}
+{{- range $name := keys $users | sortAlpha -}}
+{{- $u := index $users $name -}}
+{{- if not (kindIs "map" $u) -}}
+{{- fail (printf "auth.users.%s must be a map with group and password" $name) -}}
+{{- end -}}
+{{- $pw := required (printf "auth.users.%s.password is required" $name) $u.password -}}
+{{- printf "%s:%s:%s\n" $name (default "*" $u.group) $pw -}}
+{{- end -}}
+{{- else -}}
+{{- default "" $users -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "openconnect.groupName" -}}
 {{- if .group.name -}}
 {{- .group.name -}}
