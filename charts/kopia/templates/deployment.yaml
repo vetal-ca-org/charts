@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kopia.fullname" . }}
+  labels:
+    {{- include "kopia.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  # One writer on the host path
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "kopia.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/script: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum | trunc 16 }}
+        {{- if not .Values.existingSecret }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum | trunc 16 }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "kopia.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      automountServiceAccountToken: false
+      hostname: {{ .Values.identity.hostname }}
+      securityContext:
+        runAsUser: {{ .Values.permissions.uid }}
+        runAsGroup: {{ .Values.permissions.gid }}
+        fsGroup: {{ .Values.permissions.gid }}
+        runAsNonRoot: true
+        {{- with .Values.podSecurityContext }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      containers:
+        - name: kopia
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/sh", "/scripts/start.sh"]
+          securityContext: {{- toYaml .Values.securityContext | nindent 12 }}
+          env:
+            - name: TZ
+              value: {{ .Values.timezone | quote }}
+            - name: HOME
+              value: /tmp
+            - name: KOPIA_CONFIG_PATH
+              value: /app/config/repository.config
+            - name: KOPIA_LOG_DIR
+              value: /app/logs
+            - name: KOPIA_CACHE_DIRECTORY
+              value: /app/cache
+            - name: KOPIA_PERSIST_CREDENTIALS_ON_CONNECT
+              value: "false"
+            - name: KOPIA_CHECK_FOR_UPDATES
+              value: "false"
+          ports:
+            - name: https
+              containerPort: {{ .Values.server.port }}
+              protocol: TCP
+          # HTTPS endpoints need basic auth; TCP is enough
+          startupProbe:
+            tcpSocket: { port: https }
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            tcpSocket: { port: https }
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: { port: https }
+            periodSeconds: 30
+          volumeMounts:
+            - { name: scripts, mountPath: /scripts, readOnly: true }
+            - { name: secrets, mountPath: /secrets, readOnly: true }
+            - { name: tls, mountPath: /tls, readOnly: true }
+            - { name: repository, mountPath: /repository }
+            - { name: cache, mountPath: /app/cache }
+            - { name: config, mountPath: /app/config }
+            - { name: logs, mountPath: /app/logs }
+            - { name: tmp, mountPath: /tmp }
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ include "kopia.fullname" . }}
+        - name: secrets
+          secret:
+            secretName: {{ include "kopia.secretName" . }}
+        - name: tls
+          secret:
+            secretName: {{ include "kopia.tlsSecretName" . }}
+        - name: repository
+          hostPath:
+            path: {{ required "repository.hostPath" .Values.repository.hostPath | quote }}
+            type: {{ if .Values.repository.create }}DirectoryOrCreate{{ else }}Directory{{ end }}
+        - name: cache
+          {{- if .Values.cache.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "kopia.fullname" . }}-cache
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - { name: config, emptyDir: {} }
+        - { name: logs, emptyDir: {} }
+        - { name: tmp, emptyDir: {} }
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}

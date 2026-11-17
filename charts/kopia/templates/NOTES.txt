@@ -1,0 +1,7 @@
+Kopia server {{ include "kopia.fullname" . }} on port {{ .Values.server.port }} (TLS).
+
+Clients:
+  kopia repository connect server --url=https://{{ first (default (list "<host>") .Values.tls.certificate.dnsNames) }}:443 --override-username=<user> --override-hostname=<host>
+
+Users are synced from the Secret on every start. Logs:
+  kubectl --namespace {{ .Release.Namespace }} logs deployment/{{ include "kopia.fullname" . }}

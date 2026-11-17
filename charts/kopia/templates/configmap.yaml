@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kopia.fullname" . }}
+  labels:
+    {{- include "kopia.labels" . | nindent 4 }}
+data:
+  start.sh: |
+    #!/bin/sh
+    # Connect to the filesystem repository, sync server users, start the server.
+    set -eu
+
+    REPO=/repository
+    TLS=/tls
+    export KOPIA_PASSWORD="$(cat /secrets/repository-password)"
+    export KOPIA_SERVER_PASSWORD="$(cat /secrets/ui-password)"
+    ID="--override-username={{ .Values.identity.username }} --override-hostname={{ .Values.identity.hostname }}"
+    OWNER_FLAGS="--owner-uid={{ .Values.permissions.uid }} --owner-gid={{ .Values.permissions.gid }}"
+
+    if [ -f "$REPO/kopia.repository.f" ]; then
+      kopia repository connect filesystem --path="$REPO" $OWNER_FLAGS $ID \
+        --description={{ .Values.repository.description | quote }}
+    {{- if .Values.repository.create }}
+    else
+      echo "No repository in $REPO, creating"
+      kopia repository create filesystem --path="$REPO" $OWNER_FLAGS $ID \
+        --description={{ .Values.repository.description | quote }}
+    {{- else }}
+    else
+      echo "No repository in $REPO (kopia.repository.f missing). Copy it there or set repository.create." >&2
+      exit 1
+    {{- end }}
+    fi
+
+    {{- if .Values.identity.takeMaintenanceOwnership }}
+    kopia maintenance set --owner=me
+    {{- end }}
+
+    # Users: lines user@host:password
+    wanted=""
+    if [ -s /secrets/users ]; then
+      while IFS= read -r line || [ -n "$line" ]; do
+        [ -z "$line" ] && continue
+        u="${line%%:*}"; p="${line#*:}"
+        wanted="$wanted $u"
+        if kopia server user info "$u" >/dev/null 2>&1; then
+          kopia server user set "$u" --user-password="$p"
+        else
+          kopia server user add "$u" --user-password="$p"
+        fi
+      done < /secrets/users
+    fi
+    {{- if .Values.server.pruneUsers }}
+    for u in $(kopia server user list | awk '{print $1}'); do
+      case " $wanted " in *" $u "*) ;; *) kopia server user delete "$u" ;; esac
+    done
+    {{- end }}
+
+    kopia server start \
+      --address=https://0.0.0.0:{{ .Values.server.port }} \
+      --tls-cert-file="$TLS/tls.crt" --tls-key-file="$TLS/tls.key" \
+      --server-username={{ .Values.server.uiUsername | quote }} \
+      {{- range .Values.server.extraArgs }}
+      {{ . | quote }} \
+      {{- end }}
+      --no-check-for-updates &
+    pid=$!
+    trap 'kill -TERM $pid 2>/dev/null; wait $pid; exit 0' TERM INT
+
+    # Restart (container exit) when cert-manager renews the certificate
+    sum="$(sha256sum "$TLS/tls.crt")"
+    while kill -0 "$pid" 2>/dev/null; do
+      sleep {{ .Values.tls.reloadCheckSeconds }} & wait $!
+      if [ "$(sha256sum "$TLS/tls.crt")" != "$sum" ]; then
+        echo "TLS certificate changed, restarting"
+        kill -TERM "$pid"; wait "$pid" || true
+        exit 0
+      fi
+    done
+    wait "$pid"
