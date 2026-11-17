@@ -1,0 +1,19 @@
+{{- if .Values.config.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "qbittorrent.fullname" . }}-config
+  labels:
+    {{- include "qbittorrent.labels" . | nindent 4 }}
+  annotations:
+    # Torrent state lives here; keep it when the release is uninstalled
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with .Values.config.persistence.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.config.persistence.size }}
+{{- end }}

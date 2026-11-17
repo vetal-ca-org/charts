@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "qbittorrent.fullname" . }}
+  labels:
+    {{- include "qbittorrent.labels" . | nindent 4 }}
+data:
+  # Settings forced into qBittorrent.conf on every start: <section><TAB><key>=<value>
+  settings.tsv: |
+    {{- range $section, $keys := (include "qbittorrent.settings" . | fromYaml) }}
+    {{- range $k, $v := $keys }}
+    {{ $section }}{{ "\t" }}{{ $k }}={{ $v }}
+    {{- end }}
+    {{- end }}
+  init.sh: |
+    #!/bin/sh
+    set -eu
+    dir=/config/qBittorrent
+    conf="${dir}/qBittorrent.conf"
+    mkdir -p "${dir}"
+
+    # One-time seed from the node
+    if [ ! -f "${conf}" ] && [ -f /seed/seed.tar.gz ]; then
+      tar -xzf /seed/seed.tar.gz -C "${dir}"
+      echo "Seeded ${dir}: $(find "${dir}/BT_backup" -name '*.fastresume' 2>/dev/null | wc -l) torrents"
+    fi
+
+    # Force settings: set <key> in [<section>], add the section if missing. Also drop
+    # the pre-5.0 copy "[Preferences] <section>\<key>": qBittorrent's settings
+    # migration would otherwise copy it over the new key on the first start.
+    # Keys are matched as plain strings (they hold backslashes).
+    if [ -s /chart/settings.tsv ]; then
+      [ -f "${conf}" ] || : > "${conf}"
+      awk -v settings=/chart/settings.tsv '
+        BEGIN {
+          while ((getline line < settings) > 0) {
+            if (line == "") continue
+            t = index(line, "\t"); s = substr(line, 1, t - 1); kv = substr(line, t + 1)
+            k = substr(kv, 1, index(kv, "=") - 1)
+            n++; sec[n] = s; key[n] = k; out[n] = kv
+            want[s SUBSEP k] = n; legacy[s "\\" k] = 1
+          }
+        }
+        function flush(section,  j) {
+          for (j = 1; j <= n; j++)
+            if (sec[j] == section && !(j in done)) { print out[j]; done[j] = 1 }
+        }
+        /^\[.*\]$/ {
+          flush(cur); cur = substr($0, 2, length($0) - 2); seen[cur] = 1
+          print; next
+        }
+        {
+          i = index($0, "="); k = (i ? substr($0, 1, i - 1) : "")
+          if (cur == "Preferences" && (k in legacy)) next
+          if ((cur SUBSEP k) in want) { j = want[cur SUBSEP k]; print out[j]; done[j] = 1; next }
+          print
+        }
+        END {
+          flush(cur)
+          for (j = 1; j <= n; j++) if (!(sec[j] in seen)) {
+            print ""; print "[" sec[j] "]"; flush(sec[j]); seen[sec[j]] = 1
+          }
+        }
+      ' "${conf}" > "${conf}.new"
+      mv "${conf}.new" "${conf}"
+      echo "Forced settings:"; cat /chart/settings.tsv
+    fi
+    chown -R {{ .Values.permissions.uid }}:{{ .Values.permissions.gid }} /config
