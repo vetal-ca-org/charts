@@ -1,0 +1,102 @@
+image:
+  repository: kopia/kopia
+  # Defaults to .Chart.AppVersion
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+timezone: "UTC"
+
+# Files are written to the repository with this UID/GID (match the owner of
+# repository.hostPath on the node).
+permissions:
+  uid: 1000
+  gid: 1000
+
+repository:
+  # Filesystem repository on the node. Must exist and already contain a Kopia
+  # repository unless create: true.
+  hostPath: ""
+  # Create the repository on first start if hostPath holds none
+  create: false
+  description: "Kopia repository server"
+  # Repository password (encrypts the repository). Required unless existingSecret.
+  password: ""
+
+# Identity of the server as a repository client (maintenance owner, server logs).
+# Fixed so it survives pod restarts.
+identity:
+  username: kopia
+  hostname: kopia-server
+  # Make this server the maintenance owner (kopia maintenance set --owner=me).
+  # A repository migrated from a desktop client is otherwise maintained by that client.
+  takeMaintenanceOwnership: true
+
+server:
+  port: 51515
+  # Web UI / control API basic auth (not used by snapshot clients)
+  uiUsername: admin
+  uiPassword: ""
+  # Snapshot clients, lowercase user@hostname. Created or updated (password) on every start.
+  # Snapshots made as Vetal@pc (desktop client) need `kopia snapshot move-history Vetal@pc vetal@pc`.
+  #  - name: vetal@desktop
+  #    password: secret
+  users: []
+  # Remove repository users that are not in .users
+  pruneUsers: false
+  extraArgs: []
+  #  - --content-cache-size-mb=5000
+
+# Secret with keys repository-password, ui-password and users (lines user@host:password).
+# When set, the chart creates no Secret of its own.
+existingSecret: ""
+
+tls:
+  # Kopia terminates TLS itself (gRPC clients need HTTP/2; the plain-text mode is
+  # HTTP/1.1 only). Put it behind a TLS passthrough route.
+  # Secret with tls.crt/tls.key. Default: <fullname>-tls from the Certificate below.
+  secretName: ""
+  certificate:
+    enabled: true
+    dnsNames: []
+    issuerRef:
+      kind: ClusterIssuer
+      name: prod
+    privateKey:
+      rotationPolicy: Always
+  # Kopia reads the certificate only at start. The container exits when the mounted
+  # certificate changes, and the kubelet restarts it.
+  reloadCheckSeconds: 300
+
+cache:
+  # Content/metadata cache. emptyDir when disabled.
+  persistence:
+    enabled: true
+    storageClassName: ""
+    size: 10Gi
+
+service:
+  type: ClusterIP
+  port: 51515
+  annotations: {}
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+resources: {}
+#  requests: { cpu: 100m, memory: 256Mi }
+#  limits: { memory: 2Gi }
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

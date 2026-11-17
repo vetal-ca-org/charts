@@ -1,0 +1,16 @@
+{{- if .Values.cache.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "kopia.fullname" . }}-cache
+  labels:
+    {{- include "kopia.labels" . | nindent 4 }}
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with .Values.cache.persistence.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.cache.persistence.size }}
+{{- end }}

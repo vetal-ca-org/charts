@@ -1,0 +1,10 @@
+apiVersion: v2
+name: kopia
+description: Kopia repository server (filesystem repository on a host path)
+type: application
+version: 0.1.0
+# https://github.com/kopia/kopia/releases
+appVersion: "0.23.1"
+home: https://kopia.io
+sources:
+  - https://github.com/kopia/kopia

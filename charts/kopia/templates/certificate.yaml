@@ -1,0 +1,15 @@
+{{- if and .Values.tls.certificate.enabled (not .Values.tls.secretName) }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "kopia.fullname" . }}
+  labels:
+    {{- include "kopia.labels" . | nindent 4 }}
+spec:
+  secretName: {{ include "kopia.tlsSecretName" . }}
+  issuerRef: {{- toYaml .Values.tls.certificate.issuerRef | nindent 4 }}
+  {{- with .Values.tls.certificate.privateKey }}
+  privateKey: {{- toYaml . | nindent 4 }}
+  {{- end }}
+  dnsNames: {{- toYaml (required "tls.certificate.dnsNames" .Values.tls.certificate.dnsNames) | nindent 4 }}
+{{- end }}
