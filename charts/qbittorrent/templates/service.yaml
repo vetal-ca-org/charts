@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "qbittorrent.fullname" . }}
+  labels:
+    {{- include "qbittorrent.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      appProtocol: http
+  {{- if include "qbittorrent.manualEndpoint" . }}
+  # No selector: the pod's endpoint would be <node>:<port>, where the Web UI does
+  # not listen. The EndpointSlice below points at webui.address.
+  {{- else }}
+  selector:
+    {{- include "qbittorrent.selectorLabels" . | nindent 4 }}
+  {{- end }}
+{{- if include "qbittorrent.manualEndpoint" . }}
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: {{ include "qbittorrent.fullname" . }}-webui
+  labels:
+    {{- include "qbittorrent.labels" . | nindent 4 }}
+    kubernetes.io/service-name: {{ include "qbittorrent.fullname" . }}
+    endpointslice.kubernetes.io/managed-by: helm
+addressType: {{ if contains ":" .Values.webui.address }}IPv6{{ else }}IPv4{{ end }}
+ports:
+  - name: http
+    port: {{ .Values.webui.port }}
+    protocol: TCP
+    appProtocol: http
+endpoints:
+  - addresses: [{{ .Values.webui.address | quote }}]
+{{- end }}
+{{- if and .Values.peerService.enabled (not .Values.hostNetwork) }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "qbittorrent.fullname" . }}-peer
+  labels:
+    {{- include "qbittorrent.labels" . | nindent 4 }}
+  {{- with .Values.peerService.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.peerService.type }}
+  ipFamilyPolicy: {{ .Values.peerService.ipFamilyPolicy }}
+  {{- if ne .Values.peerService.type "ClusterIP" }}
+  externalTrafficPolicy: {{ .Values.peerService.externalTrafficPolicy }}
+  {{- end }}
+  ports:
+    - name: peer-tcp
+      port: {{ .Values.torrenting.port }}
+      targetPort: peer-tcp
+      protocol: TCP
+    - name: peer-udp
+      port: {{ .Values.torrenting.port }}
+      targetPort: peer-udp
+      protocol: UDP
+  selector:
+    {{- include "qbittorrent.selectorLabels" . | nindent 4 }}
+{{- end }}

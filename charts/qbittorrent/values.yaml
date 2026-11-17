@@ -1,0 +1,109 @@
+image:
+  repository: lscr.io/linuxserver/qbittorrent
+  # Defaults to .Chart.AppVersion. The linuxserver tag <version> follows their weekly
+  # rebuilds of that qBittorrent version; <version>_v<libtorrent>-ls<n> pins one build,
+  # <version>-libtorrentv1 uses libtorrent 1.2.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+timezone: "UTC"
+
+# qBittorrent runs as this UID/GID (linuxserver PUID/PGID). Match the owner of the
+# download directories on the node.
+permissions:
+  uid: 1000
+  gid: 1000
+
+# Use the node's network namespace: qBittorrent binds the node's IPv4 and IPv6
+# addresses directly (peer port and Web UI on the node, no NAT, UPnP works).
+# One pod per node; the ports must be free on the node.
+hostNetwork: false
+
+webui:
+  port: 8080
+  # Bind the Web UI to this address only ("" = all addresses). With hostNetwork, a
+  # node address the LAN cannot reach (the CNI bridge, e.g. 10.42.0.1) keeps the
+  # Web UI off <node>:<port>; the Service then points at this address.
+  address: ""
+
+# Peer (incoming) port, TCP and UDP. Overrides Connection\PortRangeMin at start.
+torrenting:
+  port: 6881
+
+config:
+  # /config: qBittorrent.conf, BT_backup (resume data), rss, logs. emptyDir when disabled.
+  persistence:
+    enabled: true
+    storageClassName: ""
+    size: 1Gi
+  # One-time seed: .tar.gz on the node with the contents of a qBittorrent profile
+  # directory (qBittorrent.conf, BT_backup/, ...) at its root. Extracted to
+  # /config/qBittorrent when that holds no qBittorrent.conf yet; ignored afterwards.
+  seed:
+    hostPath: ""
+
+# qBittorrent.conf settings forced on every start, as <section>: {<key>: <value>}
+# (qBittorrent 5.x layout; other settings stay as the Web UI saved them), e.g.:
+#   WebUI:
+#     ReverseProxySupportEnabled: true
+#     TrustedReverseProxiesList: 10.42.0.0/24
+settings: {}
+
+# Host directories, mounted at the same path qBittorrent's save paths use
+hostMounts: []
+#  - name: torrents
+#    hostPath: /srv/torrents
+#    mountPath: /downloads
+
+# Web UI. With hostNetwork the endpoint is the node address.
+service:
+  type: ClusterIP
+  port: 8080
+  annotations: {}
+
+# Peer port Service, for pods without hostNetwork (ignored with hostNetwork)
+peerService:
+  enabled: false
+  type: LoadBalancer
+  annotations: {}
+  ipFamilyPolicy: PreferDualStack
+  externalTrafficPolicy: Local
+
+# The Web UI runs on qBittorrent's main thread and stops answering while large
+# torrents are added. Liveness restarts the pod only after
+# periodSeconds * failureThreshold (+ timeout) without an answer: 5 min by default.
+probes:
+  startup:
+    failureThreshold: 60      # x 10 s
+  readiness:
+    periodSeconds: 30
+    timeoutSeconds: 60
+    failureThreshold: 3
+  liveness:
+    periodSeconds: 60
+    timeoutSeconds: 60
+    failureThreshold: 5
+
+# Istio (when its API is installed): DestinationRule for the Web UI Service.
+istio:
+  # Close idle proxy->qBittorrent connections before qBittorrent does (7 s).
+  # "" disables the DestinationRule.
+  upstreamIdleTimeout: 5s
+
+podAnnotations: {}
+
+# The image starts as root (s6-overlay) and drops to permissions.uid/gid itself
+podSecurityContext: {}
+securityContext: {}
+
+resources: {}
+#  requests: { cpu: 100m, memory: 256Mi }
+#  limits: { memory: 2Gi }
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

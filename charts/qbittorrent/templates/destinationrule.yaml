@@ -1,0 +1,21 @@
+{{- /*
+qBittorrent closes HTTP connections idle for 7 s (Http::Server KEEP_ALIVE_DURATION,
+checked every 2 s) without reading what is already queued. A proxy that reuses
+such a connection gets a reset before the response headers ("upstream connect
+error ... connection termination"), and Envoy does not retry POSTs (torrent
+uploads). Close idle upstream connections first.
+*/}}
+{{- if and .Values.istio.upstreamIdleTimeout (.Capabilities.APIVersions.Has "networking.istio.io/v1/DestinationRule") }}
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: {{ include "qbittorrent.fullname" . }}
+  labels:
+    {{- include "qbittorrent.labels" . | nindent 4 }}
+spec:
+  host: {{ include "qbittorrent.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      http:
+        idleTimeout: {{ .Values.istio.upstreamIdleTimeout }}
+{{- end }}
