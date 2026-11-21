@@ -1,0 +1,11 @@
+apiVersion: v2
+name: crashplan
+description: CrashPlan (jlesage/crashplan-pro image), web GUI only, read-only host mounts
+type: application
+version: 0.2.0
+# Image tag without the leading "v": https://github.com/jlesage/docker-crashplan-pro/releases
+# 26.10.1 bundles CrashPlan 12.1.1
+appVersion: "26.10.1"
+home: https://www.crashplan.com
+sources:
+  - https://github.com/jlesage/docker-crashplan-pro

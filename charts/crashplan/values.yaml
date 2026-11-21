@@ -1,0 +1,68 @@
+image:
+  repository: jlesage/crashplan-pro
+  # Defaults to "v" + .Chart.AppVersion. The image pins the CrashPlan version and
+  # disables its self-update: upgrade by changing the tag.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+timezone: "UTC"
+
+# CrashPlan runs as this UID/GID (USER_ID/GROUP_ID). It needs read access to the
+# host mounts.
+permissions:
+  uid: 1000
+  gid: 1000
+
+# Java heap of the CrashPlan engine (CRASHPLAN_SRV_MAX_MEM). About 1G per TB selected.
+maxMemory: 1G
+
+# Pod hostname. CrashPlan shows it as the device name; keep the old one when moving
+# an existing install.
+hostname: ""
+
+# More image settings, e.g. DARK_MODE: "1". VNC is always off (VNC_LISTENING_PORT=-1):
+# the GUI is only the web page on port 5800.
+extraEnv: {}
+
+config:
+  # /config: engine settings and identity (conf/, machine-id), cache, logs.
+  persistence:
+    enabled: true
+    storageClassName: ""
+    size: 10Gi
+  # One-time seed: .tar.gz on the node with the contents of an existing /config at
+  # its root. Extracted when /config has no conf/ yet; ignored afterwards.
+  seed:
+    hostPath: ""
+
+# Host directories to back up, read-only by default
+hostMounts: []
+#  - name: storage
+#    hostPath: /srv/backup
+#    mountPath: /storage
+#    readOnly: true
+
+# Web GUI (noVNC). It has no authentication of its own here: put it behind a
+# gateway that adds it.
+service:
+  type: ClusterIP
+  port: 5800
+  annotations: {}
+
+podAnnotations: {}
+
+# The image starts as root and drops to permissions.uid/gid itself
+podSecurityContext: {}
+securityContext: {}
+
+resources: {}
+#  requests: { cpu: 100m, memory: 1Gi }
+#  limits: { memory: 4Gi }
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

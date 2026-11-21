@@ -1,0 +1,19 @@
+{{- if .Values.config.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "crashplan.fullname" . }}-config
+  labels:
+    {{- include "crashplan.labels" . | nindent 4 }}
+  annotations:
+    # Device identity and settings live here; keep them when the release is uninstalled
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with .Values.config.persistence.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.config.persistence.size }}
+{{- end }}
