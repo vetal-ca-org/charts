@@ -21,9 +21,12 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
       annotations:
-        checksum/config: {{ include "openconnect.configChecksum" . }}
+        checksum/config: {{ include "openconnect.configChecksum" . | quote }}
         # ocpasswd is a subPath mount, which never sees Secret updates; roll the pod.
-        checksum/users: {{ include "openconnect.ocpasswd" . | sha256sum | printf "%.8s" }}
+        checksum/users: {{ include "openconnect.ocpasswd" . | sha256sum | printf "%.8s" | quote }}
+        {{- if .Values.warp.enabled }}
+        checksum/warp: {{ printf "%s%s" (include "openconnect.warpScript" .) (toJson .Values.warp) | sha256sum | printf "%.8s" | quote }}
+        {{- end }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -86,6 +89,51 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+        {{- if .Values.warp.enabled }}
+        # Shares the pod network namespace: adds interface "warp" and the routing for it
+        - name: warp
+          image: {{ .Values.warp.image | quote }}
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "/opt/warp/warp.sh"]
+          env:
+            - name: WARP_NETWORK
+              value: {{ .Values.config.ipv4Network | quote }}
+            - name: WARP_NETMASK
+              value: {{ .Values.config.ipv4Netmask | quote }}
+            - name: WARP_ADDRESS
+              value: {{ .Values.warp.address | quote }}
+            - name: WARP_PEER_PUBLIC_KEY
+              value: {{ .Values.warp.peerPublicKey | quote }}
+            - name: WARP_ENDPOINT
+              value: {{ .Values.warp.endpoint | quote }}
+            - name: WARP_MTU
+              value: {{ .Values.warp.mtu | quote }}
+            - name: WARP_DIRECT_NETWORKS
+              value: {{ join " " .Values.warp.directNetworks | quote }}
+            - name: WARP_CHECK_HOST
+              value: {{ .Values.warp.check.host | quote }}
+            - name: WARP_CHECK_INTERVAL
+              value: {{ .Values.warp.check.intervalSeconds | quote }}
+            - name: WARP_CHECK_FAILURES
+              value: {{ .Values.warp.check.failures | quote }}
+          securityContext:
+            runAsUser: 0
+            capabilities:
+              add:
+                - NET_ADMIN
+                - NET_RAW
+          volumeMounts:
+            - name: warp-script
+              mountPath: /opt/warp
+              readOnly: true
+            - name: warp-key
+              mountPath: /etc/warp
+              readOnly: true
+          {{- with .Values.warp.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
       volumes:
         - name: config
           configMap:
@@ -93,6 +141,18 @@ spec:
         - name: auth
           secret:
             secretName: {{ include "openconnect.secretName" . }}
+        {{- if .Values.warp.enabled }}
+        - name: warp-script
+          configMap:
+            name: {{ include "openconnect.fullname" . }}-warp
+        - name: warp-key
+          secret:
+            secretName: {{ include "openconnect.secretName" . }}
+            defaultMode: 0400
+            items:
+              - key: warp-private-key
+                path: private-key
+        {{- end }}
         {{- with include "openconnect.tlsSecretName" . }}
         - name: tls
           secret:

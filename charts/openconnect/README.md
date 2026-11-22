@@ -48,6 +48,25 @@ DTLS (UDP) needs its own Service, because the TCP side usually rides an ingress 
 - `service.*` – toggles a ClusterIP Service (automatically enabled when Istio is used).
 - `istio.enabled` – when `true` and `vpn_address` is set, creates Istio Gateway/VirtualService resources for SNI-based passthrough routing.
 - `hostNetwork` – disable when routing via ClusterIP/Service meshes, leave enabled for direct node networking.
+- `warp.*` – public traffic of the VPN clients out through Cloudflare WARP (see below).
+
+## WARP egress
+
+With `warp.enabled`, a sidecar (`warp`) adds a kernel WireGuard interface to the pod and routes
+traffic from the client network (`config.ipv4Network`) to WARP. Private ranges
+(`warp.directNetworks`, RFC 1918 and CGNAT by default) keep the main table, so per-group `route`s to
+internal networks are unchanged; only groups with `route = default` send public traffic at all.
+
+- Needs: the `wireguard` kernel module loaded on the node (a container cannot load it), and
+  `warp.privateKey` from a wgcf registration (`wgcf register && wgcf generate`, `PrivateKey`) of its
+  own, not shared with another WARP client. Keep `replicaCount: 1`.
+- Failure: the sidecar pings `warp.check.host` through the interface every `intervalSeconds`. After
+  `failures` misses it removes the routing rule (traffic leaves via the node IP) and changes the
+  WireGuard listen port (a new UDP flow); the rule returns once a ping gets through. The sidecar
+  never exits on errors, so it cannot take the pod out of its Services.
+- Logs: `kubectl logs <pod> -c warp` (`WARP up` / `WARP down` lines).
+- Check from a client in a `route = default` group: `curl https://cloudflare.com/cdn-cgi/trace`
+  shows `warp=on`.
 
 See `values.yaml` for the exhaustive list of tunables, including scheduling knobs and security contexts.
 
