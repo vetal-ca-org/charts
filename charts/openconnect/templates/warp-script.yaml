@@ -1,0 +1,11 @@
+{{- if .Values.warp.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "openconnect.fullname" . }}-warp
+  labels:
+    {{- include "openconnect.labels" . | nindent 4 }}
+data:
+  warp.sh: |
+{{ include "openconnect.warpScript" . | indent 4 }}
+{{- end }}

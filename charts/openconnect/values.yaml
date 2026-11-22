@@ -138,6 +138,43 @@ groups: {}
 
 defaultGroup: {}
 
+# Public traffic of the VPN clients out through Cloudflare WARP: a sidecar adds a
+# kernel WireGuard interface to the pod (the node needs the wireguard module loaded)
+# and routes the clients' source network (config.ipv4Network) through it. Private
+# ranges (directNetworks) keep the normal path. When WARP stops answering, the rule
+# is removed and traffic leaves via the node IP until WARP answers again.
+warp:
+  enabled: false
+  image: procustodibus/wireguard:v1.0.20260223-i261106
+  # PrivateKey of a wgcf registration (wgcf register && wgcf generate). Keep it in
+  # secrets; one registration per Deployment (replicas share the identity).
+  privateKey: ""
+  # Address and peer key are the same for every WARP registration
+  address: 172.16.0.2/32
+  peerPublicKey: bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=
+  # IPv4 literal: engage.cloudflareclient.com also resolves to IPv6, where WARP
+  # has ignored handshakes
+  endpoint: 162.159.192.1:2408
+  mtu: 1280
+  # Never through WARP (it cannot reach them): RFC 1918 and CGNAT
+  directNetworks:
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+    - 192.168.0.0/16
+    - 100.64.0.0/10
+  check:
+    # Pinged through the interface
+    host: 1.1.1.1
+    intervalSeconds: 20
+    # Failed pings in a row before falling back to the node IP
+    failures: 3
+  resources:
+    requests:
+      cpu: 5m
+      memory: 8Mi
+    limits:
+      memory: 32Mi
+
 vpn_address: ""
 
 istio:
