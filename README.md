@@ -1,25 +1,25 @@
 # charts
 
-Helm chart collection with GitHub Actions–driven linting and publishing.
+Helm chart collection with GitHub Actions, driven linting and publishing.
 
 ## Repository layout
 
-- `charts/<name>` – individual charts (syncthing, zerotier, openconnect, xray-reality, kopia, qbittorrent, crashplan)
-- `dist/` – local build artifacts (`helm package` output, ignored by git)
-- `.github/workflows/helm.yaml` – CI lint/package on PRs
-- `.github/workflows/release.yaml` – packages + publishes charts to GitHub Pages via chart-releaser
+- `charts/<name>`, individual charts (syncthing, zerotier, openconnect, xray-reality, kopia, qbittorrent, crashplan)
+- `dist/`, local build artifacts (`helm package` output, ignored by git)
+- `.github/workflows/helm.yaml`, CI lint/package on PRs
+- `.github/workflows/release.yaml`, packages + publishes charts to GitHub Pages via chart-releaser
 
 ## CI/CD workflows
 
-1. **helm.yaml** – runs on pushes/PRs touching `charts/**`. It installs Helm, lints `charts/zerotier`, builds dependencies (if any), and packages into `dist/` for inspection or manual download.
-2. **release.yaml** – runs when you publish a GitHub Release. It lints every chart under `charts/`, then invokes [`helm/chart-releaser-action`](https://github.com/helm/chart-releaser-action) to:
+1. **helm.yaml**, runs on pushes/PRs touching `charts/**`. It installs Helm, lints `charts/zerotier`, builds dependencies (if any), and packages into `dist/` for inspection or manual download.
+2. **release.yaml**, runs when you publish a GitHub Release. It lints every chart under `charts/`, then invokes [`helm/chart-releaser-action`](https://github.com/helm/chart-releaser-action) to:
    - Package changed charts
    - Upload `.tgz` files to the Release assets
    - Regenerate `index.yaml` on the `gh-pages` branch so the repo can be consumed as a Helm repository
 
 Both workflows reuse Helm v3.14.4 for consistency.
 
-## Publishing “by the book”
+## Publishing "by the book"
 
 1. **Enable GitHub Pages**
    - Create an empty `gh-pages` branch once (`git checkout --orphan gh-pages && git commit --allow-empty -m "init gh-pages" && git push origin gh-pages`).
