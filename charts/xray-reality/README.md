@@ -2,7 +2,7 @@
 
 Xray inbound: VLESS, XTLS-Vision (`flow=xtls-rprx-vision`), REALITY.
 
-This is a proxy, not a VPN. OpenConnect in the same namespace is the VPN. A client may still use TUN mode on the device.
+This is a proxy. OpenConnect in the same namespace is the VPN. A client may still use TUN mode on the device.
 
 The chart ships the Deployment, Service, and the `config.json` Secret. It does not create an Istio Gateway. TLS passthrough for the REALITY server names belongs to the ingress, so Istio does not terminate the client handshake.
 
@@ -36,7 +36,7 @@ With `warp.healthCheck.enabled` (default on when `warp.enabled`):
 
 - **Probe path:** xray gets a local HTTP inbound `warp-health` on `127.0.0.1:<proxyPort>`, routed to `warp` by the first routing rule.
 - **Checker:** a `warp-health` busybox sidecar fetches `url` (default `http://cp.cloudflare.com/generate_204`) through it every `interval` seconds. After `failures` consecutive failures it stops serving `/healthz` on `<port>`.
-- **Restart:** the **xray** container's `livenessProbe` is `httpGet :<port>/healthz` (2 × 30 s), so the kubelet restarts only xray, which gets a new socket and source port. Worst case is about `failures × interval + 60 s`, around 2 minutes with the defaults. The VLESS clients drop and reconnect.
+- **Restart:** the **xray** container's `livenessProbe` is `httpGet :<port>/healthz` (2 x 30 s), so the kubelet restarts only xray, which gets a new socket and source port. Worst case is about `failures × interval + 60 s`, around 2 minutes with the defaults. The VLESS clients drop and reconnect.
 
 `warp.keepAlive` (default 25 s) sets WireGuard persistent keepalive on the peer, so idle periods don't let NAT mappings expire.
 

@@ -5,7 +5,7 @@ host path.
 
 - Kopia terminates TLS (`tls.secretName`, or a cert-manager Certificate the chart
   creates). Kopia's gRPC API needs HTTP/2, which Kopia does not serve without TLS, so
-  expose it through a TLS passthrough route or a LoadBalancer, not a TLS-terminating proxy.
+  expose it through a TLS passthrough route or a LoadBalancer. Kopia terminates TLS itself.
 - The container exits when the mounted certificate changes (`tls.reloadCheckSeconds`);
   the kubelet restarts it with the new one.
 - On start: connect to the repository (or create it with `repository.create`), make
