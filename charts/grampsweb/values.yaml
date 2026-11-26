@@ -1,0 +1,171 @@
+global:
+  image:
+    # -- if set it will overwrite all registry entries
+    registry:
+    # -- if set it will overwrite all pullPolicy
+    pullPolicy:
+
+
+# -- replicas
+replicaCount: 1
+
+image:
+  # -- image registry (could be overwritten by global.image.registry)
+  registry: ghcr.io
+  # -- image repository
+  repository: gramps-project/grampsweb
+  # -- This sets the pull policy for images. (could be overwritten by global.image.pullPolicy)
+  pullPolicy: IfNotPresent
+  # -- image tag - Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+gramps:
+  # -- To enable multi-tree support, the TREE config option must be set to a single asterisk `*`
+  tree: "Gramps Web"
+  # -- Base URL where the API can be reached (e.g. https://mygramps.mydomain.com/). This is necessary e.g. to build correct password reset links
+  baseURL: "https://gramps.example.org"
+  # -- whether or not to use a separate subfolder for the media files of each tree. Defaults to False, but strongly recommend to use True in a multi-tree setup
+  mediaPrefixTree: false
+  mail:
+    # -- SMTP server host (e.g. for sending password reset e-mails)
+    host:
+    # -- SMTP server port.
+    port: 465
+    # -- SMTP server username
+    username:
+    # -- SMTP server password
+    password:
+    # -- Boolean, whether to use TLS for sending e-mails. Defaults to true. When using STARTTLS, set this to false and use a port different from 25.
+    useTLS: true
+    # -- "From" address for automated e-mails
+    from:
+  # -- disable registration (overwrite default False to True)
+  registrationDisabled: true
+  # -- disable telemetry (overwrite default False to True)
+  disableTelemetry: true
+  # -- (fork) more environment variables in the Secret, e.g. GRAMPSWEB_OIDC_ISSUER: "https://..."
+  # https://www.grampsweb.org/install_setup/configuration/
+  extraEnv: {}
+
+## Enable persistence using Persistent Volume Claims
+## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
+##
+persistence:
+  enabled: true
+  annotations: {}
+  # -- Persistent Volume Storage Class
+  # If defined, storageClassName: <storageClass>
+  # If set to "-", storageClassName: "", which disables dynamic provisioning
+  # If undefined (the default) or set to null, no storageClassName spec is
+  #   set, choosing the default provisioner.  (gp2 on AWS, standard on
+  #   GKE, AWS & OpenStack)
+  #
+  storageClass:
+
+  # -- A manually managed Persistent Volume and Claim
+  # Requires persistence.enabled: true
+  # If defined, PVC must be created manually before volume will be bound
+  existingClaim:
+
+  # -- Do not create an PVC, direct use hostPath in Pod
+  hostPath:
+  accessMode: ReadWriteOnce
+  size: 5Gi
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 5000
+
+networkPolicy:
+  enabled: false
+  ingress:
+    # -- ingress for http port (e.g. ingress-controller)
+    http: []
+  egress:
+    # -- activate egress no networkpolicy
+    enabled: true
+    # -- egress rules
+    extra: []
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# Additional volumes on the output Deployment definition.
+volumes: []
+# - name: foo
+#   secret:
+#     secretName: mysecret
+#     optional: false
+
+# Additional volumeMounts on the output Deployment definition.
+volumeMounts: []
+# - name: foo
+#   mountPath: "/etc/foo"
+#   readOnly: true
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
